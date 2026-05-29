@@ -1,0 +1,2486 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventario Galpón — Agrocamba</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script type="module">
+// ── FIREBASE SETUP ─────────────────────────────────────────
+import { initializeApp }           from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, collection, onSnapshot, setDoc, getDoc, getDocs, addDoc, deleteDoc, writeBatch, query, orderBy, limit }
+                                    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyDw4A5vJbHUZF4rEFgZIEfbZei1X157QCQ",
+  authDomain:        "inventario-agrocamba.firebaseapp.com",
+  projectId:         "inventario-agrocamba",
+  storageBucket:     "inventario-agrocamba.firebasestorage.app",
+  messagingSenderId: "423478191490",
+  appId:             "1:423478191490:web:56bdedbe32d09a29c9db9b"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db    = getFirestore(fbApp);
+
+// Documento principal: inv, filas, rubros, unidades (sin hist)
+const DOC      = doc(db, 'inventario', 'agrocamba');
+// Colección separada para historial: cada movimiento es un documento
+const HIST_COL = collection(db, 'historial');
+
+// ── Guardar datos principales (sin historial) ─────────────
+window._fbSave = async function(data){
+  try{
+    const {hist:_, ...rest} = data; // excluir hist del doc principal
+    await setDoc(DOC, rest);
+    return true;
+  }catch(e){
+    console.error('Firebase save error:', e);
+    return false;
+  }
+};
+
+// ── Guardar UN movimiento nuevo en la colección ───────────
+window._fbAddHist = async function(movimiento){
+  try{
+    await addDoc(HIST_COL, movimiento);
+    return true;
+  }catch(e){
+    console.error('Firebase addHist error:', e);
+    return false;
+  }
+};
+
+// ── Borrar UN movimiento por su fbId ─────────────────────
+window._fbDeleteHist = async function(fbId){
+  try{
+    await deleteDoc(doc(db, 'historial', fbId));
+    return true;
+  }catch(e){
+    console.error('Firebase deleteHist error:', e);
+    return false;
+  }
+};
+
+// ── Cargar historial completo ─────────────────────────────
+window._fbLoadHist = async function(){
+  try{
+    const snap = await getDocs(query(HIST_COL, orderBy('ts','desc')));
+    return snap.docs.map(d=>({...d.data(), fbId: d.id}));
+  }catch(e){
+    console.error('Firebase loadHist error:', e);
+    return [];
+  }
+};
+
+// ── Cargar datos principales ──────────────────────────────
+window._fbLoad = async function(){
+  try{
+    const snap = await getDoc(DOC);
+    return snap.exists() ? snap.data() : null;
+  }catch(e){
+    console.error('Firebase load error:', e);
+    return null;
+  }
+};
+
+window._fbReady = true;
+document.dispatchEvent(new Event('fb-ready'));
+</script>
+<style>
+:root{
+  --bg:#f5f3ee;--bg-card:#fff;--bg-sidebar:#1a1a18;
+  --text:#1a1a18;--text-muted:#6b6b60;--text-sidebar:#e8e6df;
+  --accent:#2d6a4f;--accent-light:#e8f4ee;--accent-border:#a7d5bc;
+  --warn:#b45309;--warn-light:#fef3c7;--warn-border:#f0c070;
+  --danger:#9b1c1c;--danger-light:#fde8e8;--danger-border:#f5b8b8;
+  --border:#dddbd3;--border-dark:#c8c6be;
+  --font:'IBM Plex Sans',sans-serif;--mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;min-height:100vh;}
+
+/* SIDEBAR */
+.sidebar{width:220px;min-height:100vh;background:var(--bg-sidebar);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100;padding:0 0 1.5rem;}
+.sidebar-logo{padding:1.5rem 1.5rem 1.1rem;border-bottom:.5px solid rgba(255,255,255,.1);margin-bottom:.75rem;}
+.sidebar-logo .co{font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:#6b6b60;font-family:var(--mono);margin-bottom:4px;}
+.sidebar-logo .name{font-size:15px;font-weight:600;color:var(--text-sidebar);line-height:1.2;}
+.sidebar-logo .sub{font-size:12px;color:#8a8a7a;margin-top:2px;}
+.nav-s{padding:0 1rem;margin-bottom:.25rem;}
+.nav-lbl{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:#6b6b60;font-family:var(--mono);padding:0 .5rem;margin-bottom:.4rem;}
+.nav-btn{display:flex;align-items:center;gap:9px;width:100%;padding:8px 12px;border:none;background:transparent;color:#8a8a7a;font-family:var(--font);font-size:13px;cursor:pointer;border-radius:8px;text-align:left;transition:all .15s;margin-bottom:1px;}
+.nav-btn:hover{background:rgba(255,255,255,.07);color:var(--text-sidebar);}
+.nav-btn.active{background:rgba(255,255,255,.12);color:var(--text-sidebar);font-weight:500;}
+.nav-btn svg{width:15px;height:15px;flex-shrink:0;opacity:.7;}
+.nav-btn.active svg{opacity:1;}
+.sync-wrap{padding:.5rem 1rem;}
+.sync-status{padding:7px 12px;border-radius:8px;font-size:11px;font-family:var(--mono);display:flex;align-items:center;gap:7px;margin-bottom:6px;}
+.sync-status.ok{background:rgba(45,106,79,.2);color:#6fc49a;}
+.sync-status.error{background:rgba(155,28,28,.2);color:#f4a0a0;}
+.sync-status.loading{background:rgba(255,255,255,.06);color:#8a8a7a;}
+.sync-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.sync-status.ok .sync-dot{background:#6fc49a;}
+.sync-status.error .sync-dot{background:#f4a0a0;}
+.sync-status.loading .sync-dot{background:#8a8a7a;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.btn-sync{width:100%;padding:7px 12px;font-size:12px;font-family:var(--font);background:transparent;color:#8a8a7a;border:.5px solid rgba(255,255,255,.12);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;}
+.btn-sync:hover{background:rgba(255,255,255,.07);color:var(--text-sidebar);}
+.btn-sync svg{width:13px;height:13px;}
+.sidebar-footer{margin-top:auto;padding:1rem 1.5rem 0;border-top:.5px solid rgba(255,255,255,.1);}
+.sidebar-footer .fecha{font-size:10px;color:#6b6b60;font-family:var(--mono);}
+.sidebar-footer .fecha span{display:block;color:#8a8a7a;margin-top:2px;}
+
+/* MAIN */
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.topbar{padding:1.5rem 2rem 0;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;}
+.page-title{font-size:21px;font-weight:600;letter-spacing:-.3px;}
+.page-sub{font-size:13px;color:var(--text-muted);margin-top:2px;}
+.content{padding:1.25rem 2rem 3rem;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* METRICS */
+.metrics-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.25rem;}
+.mc{background:var(--bg-card);border:.5px solid var(--border);border-radius:12px;padding:.9rem 1.1rem;}
+.mc-lbl{font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);margin-bottom:5px;}
+.mc-val{font-size:26px;font-weight:600;font-family:var(--mono);line-height:1;}
+.mc-val.ok{color:var(--accent);}
+.mc-val.warn{color:var(--warn);}
+.mc-val.danger{color:var(--danger);}
+
+/* CONTROLS */
+.sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem;flex-wrap:wrap;gap:.75rem;}
+.sec-title{font-size:14px;font-weight:600;}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.srch{position:relative;}
+.srch svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--text-muted);pointer-events:none;}
+.srch input{padding:7px 9px 7px 28px;font-size:13px;font-family:var(--font);border:.5px solid var(--border-dark);border-radius:8px;background:var(--bg-card);color:var(--text);width:210px;outline:none;}
+.srch input:focus{border-color:var(--accent);}
+select.flt{padding:7px 9px;font-size:13px;font-family:var(--font);border:.5px solid var(--border-dark);border-radius:8px;background:var(--bg-card);color:var(--text);outline:none;cursor:pointer;}
+
+/* TABLE */
+.tw{background:var(--bg-card);border:.5px solid var(--border);border-radius:12px;overflow:hidden;}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;}
+thead th{background:#f9f8f5;padding:8px 11px;text-align:left;font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);border-bottom:.5px solid var(--border);white-space:nowrap;}
+tbody td{padding:8px 11px;border-bottom:.5px solid var(--border);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:#fafaf8;}
+.badge{display:inline-block;font-size:11px;font-family:var(--mono);font-weight:500;padding:2px 8px;border-radius:20px;}
+.badge.ok{background:var(--accent-light);color:var(--accent);}
+.badge.warn{background:var(--warn-light);color:var(--warn);}
+.badge.danger{background:var(--danger-light);color:var(--danger);}
+
+/* BUTTONS */
+.btn{padding:9px 18px;font-size:13px;font-weight:500;font-family:var(--font);border-radius:8px;cursor:pointer;transition:all .15s;}
+.btn-dark{background:var(--bg-sidebar);color:#fff;border:none;}
+.btn-dark:hover{opacity:.85;}
+.btn-dark:active{transform:scale(.98);}
+.btn-ghost{background:transparent;color:var(--text-muted);border:.5px solid var(--border-dark);}
+.btn-ghost:hover{background:var(--bg-card);color:var(--text);}
+.btn-sm{padding:3px 9px;font-size:11px;border-radius:6px;cursor:pointer;font-family:var(--font);transition:all .15s;border:.5px solid var(--border-dark);background:transparent;color:var(--text-muted);}
+.btn-sm:hover{color:var(--text);border-color:var(--border-dark);}
+.btn-sm-danger{color:var(--danger);border-color:var(--danger-border);}
+.btn-sm-danger:hover{background:var(--danger-light);}
+.btn-sm-accent{color:var(--accent);border-color:var(--accent-border);}
+.btn-sm-accent:hover{background:var(--accent-light);}
+.btn-export{padding:7px 13px;font-size:12px;font-family:var(--font);background:transparent;color:var(--text-muted);border:.5px solid var(--border-dark);border-radius:8px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;}
+.btn-export:hover{background:var(--bg-card);color:var(--text);}
+.btn-export svg{width:13px;height:13px;}
+
+/* ALERT */
+.alert-banner{background:var(--danger-light);border:.5px solid var(--danger-border);border-radius:8px;padding:9px 13px;font-size:13px;color:var(--danger);margin-bottom:1rem;display:none;}
+.alert-banner.show{display:block;}
+
+/* LOADING */
+.loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300;gap:1rem;}
+.loading-screen.hidden{display:none;}
+.loading-bar{width:180px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+.loading-bar-inner{height:100%;background:var(--accent);border-radius:2px;animation:loadbar 1.5s ease infinite;}
+@keyframes loadbar{0%{width:0;margin-left:0;}50%{width:60%;margin-left:20%;}100%{width:0;margin-left:100%;}}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;}
+.overlay.open{display:flex;}
+.modal{background:var(--bg-card);border-radius:14px;padding:1.75rem;width:580px;max-width:96vw;max-height:90vh;overflow-y:auto;position:relative;}
+.modal-title{font-size:17px;font-weight:600;margin-bottom:4px;}
+.modal-sub{font-size:13px;color:var(--text-muted);margin-bottom:1.25rem;}
+.modal-close{position:absolute;top:1.1rem;right:1.1rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:22px;line-height:1;padding:2px 7px;}
+.modal-close:hover{color:var(--text);}
+.detail-block{background:#f9f8f5;border:.5px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:.9rem;}
+.detail-block-title{font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);margin-bottom:.65rem;}
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:.5px solid var(--border);}
+.detail-row:last-child{border-bottom:none;}
+.detail-row label{font-size:13px;color:var(--text-muted);flex:1;padding-right:1rem;}
+.detail-row input{width:120px;padding:5px 8px;font-size:13px;font-family:var(--mono);border:.5px solid var(--border-dark);border-radius:6px;background:#fff;color:var(--text);text-align:right;outline:none;}
+.detail-row input:focus{border-color:var(--accent);}
+.detail-row .val{font-size:14px;font-weight:600;font-family:var(--mono);}
+.contable-result{display:flex;justify-content:space-between;align-items:center;padding:.8rem 1.1rem;background:var(--accent-light);border:.5px solid var(--accent-border);border-radius:10px;margin-bottom:1.1rem;}
+.contable-result .lbl{font-size:13px;color:var(--accent);font-weight:500;}
+.contable-result .formula{font-size:10.5px;color:#4a9a74;margin-top:2px;font-family:var(--mono);}
+.contable-result .num{font-size:22px;font-weight:600;font-family:var(--mono);color:var(--accent);}
+
+/* PRICE HISTORY */
+.price-hist{margin-top:.75rem;}
+.price-hist-title{font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);margin-bottom:.5rem;}
+.price-hist-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:.5px solid var(--border);font-size:12.5px;}
+.price-hist-row:last-child{border-bottom:none;}
+.price-hist-row .ph-date{color:var(--text-muted);font-family:var(--mono);}
+.price-hist-row .ph-price{font-weight:600;font-family:var(--mono);color:var(--text);}
+.price-hist-row .ph-user{font-size:11px;color:var(--text-muted);}
+
+/* FORM */
+.form-card{background:var(--bg-card);border:.5px solid var(--border);border-radius:12px;padding:1.5rem;max-width:560px;}
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:11px;}
+.fg label{font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);}
+.fg input,.fg select{padding:9px 12px;font-size:13.5px;font-family:var(--font);border:.5px solid var(--border-dark);border-radius:8px;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s;width:100%;}
+.fg input:focus,.fg select:focus{border-color:var(--accent);background:#fff;}
+.fg-row{display:flex;gap:11px;}
+.preview-box{display:none;border-radius:8px;padding:10px 13px;font-size:13px;margin-bottom:13px;line-height:1.6;}
+.preview-box.ok{display:block;background:var(--accent-light);border:.5px solid var(--accent-border);color:#1a4a34;}
+.preview-box.warn{display:block;background:var(--warn-light);border:.5px solid var(--warn-border);color:#7c3d0a;}
+.preview-box.danger{display:block;background:var(--danger-light);border:.5px solid var(--danger-border);color:#7a1515;}
+
+/* FILAS */
+.fila-controls{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;}
+.fila-controls .srch input{width:200px;}
+.fila-card{background:var(--bg-card);border:.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;transition:box-shadow .15s;}
+.fila-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.fila-header{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;user-select:none;}
+.fila-header:hover{background:#fafaf8;}
+.fila-stripe{width:4px;height:36px;border-radius:2px;flex-shrink:0;}
+.fila-header-info{flex:1;min-width:0;}
+.fila-nombre{font-size:14px;font-weight:600;color:var(--text);}
+.fila-resumen{font-size:12px;color:var(--text-muted);margin-top:2px;font-family:var(--mono);}
+.fila-badges{display:inline-flex;gap:4px;margin-left:6px;vertical-align:middle;}
+.fila-badge{font-size:10px;padding:1px 7px;border-radius:10px;font-family:var(--font);font-weight:500;}
+.fila-badge.pend{background:var(--warn-light);color:var(--warn);}
+.fila-badge.venc{background:var(--danger-light);color:var(--danger);}
+.fila-header-actions{display:flex;gap:6px;flex-shrink:0;}
+.fila-chevron{font-size:16px;color:var(--text-muted);flex-shrink:0;}
+.fila-body{padding:0 0 8px;border-top:.5px solid var(--border);}
+.fila-table{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed;}
+.fila-table thead th{background:#f9f8f5;padding:7px 12px;text-align:left;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);border-bottom:.5px solid var(--border);}
+.fila-table tbody td{padding:7px 12px;border-bottom:.5px solid var(--border);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fila-table tbody tr:last-child td{border-bottom:none;}
+.fila-table tbody tr:hover td{background:#fafaf8 !important;}
+.fila-row-pend td{background:var(--warn-light) !important;}
+.fila-row-venc td{background:#fde8e8 !important;}
+.semaforo{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;margin-right:5px;vertical-align:middle;}
+.sem-ok{background:#22c55e;}.sem-pend{background:#f59e0b;}.sem-diff{background:#ef4444;}
+.tipo-ico{font-size:13px;margin-right:4px;}
+.fila-quick-actions{display:none;gap:3px;}
+.fila-static-actions{display:inline-flex;gap:3px;}
+.fila-table tbody tr:hover .fila-quick-actions{display:inline-flex;}
+.fila-table tbody tr:hover .fila-static-actions{display:none;}
+.btn-qa{padding:2px 7px;font-size:10px;border-radius:5px;cursor:pointer;font-family:var(--font);border:.5px solid var(--border-dark);background:var(--bg-card);color:var(--text-muted);transition:all .12s;white-space:nowrap;}
+.btn-qa:hover{background:var(--bg-sidebar);color:#fff;border-color:var(--bg-sidebar);}
+.btn-qa-danger:hover{background:var(--danger-light);color:var(--danger);}
+.venc-chip{display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;font-family:var(--mono);}
+.venc-chip.ok{background:var(--accent-light);color:var(--accent);}
+.venc-chip.warn{background:var(--warn-light);color:var(--warn);}
+.venc-chip.danger{background:var(--danger-light);color:var(--danger);}
+.venc-chip.none{color:var(--text-muted);font-size:11px;}
+
+/* VENCIMIENTOS MASIVOS */
+.venc-bulk-table{width:100%;border-collapse:collapse;font-size:13px;}
+.venc-bulk-table th{background:#f9f8f5;padding:8px 12px;text-align:left;font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);border-bottom:.5px solid var(--border);}
+.venc-bulk-table td{padding:7px 12px;border-bottom:.5px solid var(--border);color:var(--text);vertical-align:middle;}
+.venc-bulk-table tr:last-child td{border-bottom:none;}
+.venc-bulk-table tr:hover td{background:#fafaf8;}
+.venc-bulk-table input[type=date]{font-size:12.5px;font-family:var(--mono);border:.5px solid var(--border-dark);border-radius:6px;padding:4px 8px;background:var(--bg);color:var(--text);outline:none;width:150px;}
+.venc-bulk-table input[type=date]:focus{border-color:var(--accent);}
+.venc-bulk-fila{background:#f9f8f5;font-weight:600;font-size:12px;color:var(--accent);padding:8px 12px;border-bottom:.5px solid var(--border);}
+.venc-chip-inline{font-size:11px;padding:2px 7px;border-radius:8px;font-family:var(--mono);margin-left:6px;}
+.venc-chip-inline.danger{background:var(--danger-light);color:var(--danger);}
+.venc-chip-inline.warn{background:var(--warn-light);color:var(--warn);}
+.venc-chip-inline.ok{background:var(--accent-light);color:var(--accent);}
+
+/* FILAS */
+.hist-list{background:var(--bg-card);border:.5px solid var(--border);border-radius:12px;overflow:hidden;}
+.hist-item{display:flex;align-items:center;gap:11px;padding:10px 15px;border-bottom:.5px solid var(--border);}
+.hist-item:last-child{border-bottom:none;}
+.hist-item:hover{background:#fafaf8;}
+.hist-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;}
+.hist-dot.entrada{background:var(--accent-light);}
+.hist-dot.salida{background:var(--danger-light);}
+.hist-info{flex:1;min-width:0;}
+.hist-prod{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hist-det{font-size:11px;color:var(--text-muted);margin-top:1px;font-family:var(--mono);}
+.hist-r{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;}
+.hist-cant{font-size:13.5px;font-weight:600;font-family:var(--mono);}
+.hist-cant.pos{color:var(--accent);}
+.hist-cant.neg{color:var(--danger);}
+.hist-stock{font-size:11px;color:var(--text-muted);font-family:var(--mono);}
+.hist-actions{display:flex;gap:5px;margin-left:8px;}
+
+/* CONFIG */
+.config-section{background:var(--bg-card);border:.5px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.25rem;}
+.config-section-title{font-size:14px;font-weight:600;margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
+.config-section-title svg{width:16px;height:16px;color:var(--text-muted);}
+.prod-list-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:.5px solid var(--border);}
+.prod-list-item:last-child{border-bottom:none;}
+.prod-list-item .pli-name{flex:1;font-size:13px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.prod-list-item .pli-rubro{font-size:11.5px;color:var(--text-muted);width:130px;flex-shrink:0;}
+.prod-list-item .pli-stock{font-size:12px;font-family:var(--mono);width:60px;text-align:right;flex-shrink:0;}
+.rubro-tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:#f0ede6;color:var(--text-muted);font-family:var(--mono);cursor:pointer;}
+.rubro-tag:hover{background:var(--border-dark);}
+
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--text-muted);font-size:13px;}
+.empty .ico{font-size:28px;margin-bottom:.5rem;opacity:.4;}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--bg-sidebar);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-family:var(--font);z-index:999;display:none;animation:fadeUp .2s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-thumb{background:var(--border-dark);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<div class="loading-screen" id="loading-screen">
+  <div style="font-size:14px;font-weight:600;color:var(--text);">Agrocamba · Inventario</div>
+  <div style="font-size:13px;color:var(--text-muted);">Conectando con Firebase...</div>
+  <div class="loading-bar"><div class="loading-bar-inner"></div></div>
+</div>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="co">Agrocamba</div>
+    <div class="name">Control de Inventario</div>
+    <div class="sub">Galpón</div>
+  </div>
+  <div class="nav-s">
+    <div class="nav-lbl">Módulos</div>
+    <button class="nav-btn active" onclick="showTab('resumen')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Stock por producto
+    </button>
+    <button class="nav-btn" onclick="showTab('movimiento')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+      Registrar movimiento
+    </button>
+    <button class="nav-btn" onclick="showTab('historial')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Historial
+    </button>
+    <button class="nav-btn" onclick="showTab('filas')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="5" rx="1"/><rect x="3" y="10" width="18" height="5" rx="1"/><rect x="3" y="17" width="18" height="5" rx="1"/></svg>
+      Filas del galpón
+    </button>
+
+    <button class="nav-btn" onclick="showTab('config')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Configuración
+    </button>
+  </div>
+  <div class="sync-wrap">
+    <div class="sync-status loading" id="sync-status">
+      <div class="sync-dot"></div>
+      <span id="sync-text">Listo</span>
+    </div>
+    <button class="btn-sync" onclick="saveAll()" >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      ☁ Sincronizar ahora
+    </button>
+  </div>
+  <div style="padding:.5rem 1rem;"><button class="btn-sync" onclick="exportarBackup()" style="color:#8a8a7a;font-size:11px;">💾 Exportar backup</button></div>
+  <div class="sidebar-footer">
+    <div class="fecha">Último guardado<span id="ultima-sync">—</span></div>
+  </div>
+</aside>
+
+<main class="main">
+
+  <!-- STOCK -->
+  <div id="tab-stock" class="tab-content">
+    <div class="topbar">
+      <div><div class="page-title">Stock del galpón</div><div class="page-sub">Hacé clic en "Ver" para detalle contable y precio</div></div>
+      <button class="btn-export" onclick="exportarCSV()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Exportar CSV
+      </button>
+    </div>
+    <div class="content">
+      <div class="alert-banner" id="alert-banner"></div>
+      <div class="metrics-grid">
+        <div class="mc"><div class="mc-lbl">Total productos</div><div class="mc-val" id="m-total">—</div></div>
+        <div class="mc"><div class="mc-lbl">Stock normal</div><div class="mc-val ok" id="m-ok">—</div></div>
+        <div class="mc"><div class="mc-lbl">Stock bajo (por umbral)</div><div class="mc-val warn" id="m-warn">—</div></div>
+        <div class="mc"><div class="mc-lbl">Sin stock / negativo</div><div class="mc-val danger" id="m-danger">—</div></div>
+      </div>
+      <div class="sec-header">
+        <div class="sec-title">Productos</div>
+        <div class="controls">
+          <div class="srch">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="buscar" placeholder="Buscar producto..." oninput="renderTabla()">
+          </div>
+          <select class="flt" id="filtro-rubro" onchange="renderTabla()"><option value="">Todos los rubros</option></select>
+          <select class="flt" id="filtro-estado" onchange="renderTabla()">
+            <option value="">Todos los estados</option>
+            <option value="ok">Normal</option>
+            <option value="warn">Stock bajo</option>
+            <option value="danger">Sin stock</option>
+          </select>
+        </div>
+      </div>
+      <div class="tw">
+        <table>
+          <thead><tr>
+            <th style="width:32%">Producto</th>
+            <th style="width:13%">Rubro</th>
+            <th style="width:10%;text-align:right">Físico</th>
+            <th style="width:10%;text-align:right">Contable</th>
+            <th style="width:10%;text-align:right">Diferencia</th>
+            <th style="width:11%;text-align:right">Precio venta</th>
+            <th style="width:8%;text-align:center">Estado</th>
+            <th style="width:6%;text-align:center">Ver</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOVIMIENTO -->
+  <div id="tab-movimiento" class="tab-content">
+    <div class="topbar"><div><div class="page-title">Registrar movimiento</div><div class="page-sub">Se guarda en Firebase automáticamente</div></div></div>
+    <div class="content">
+      <div class="form-card">
+        <div class="fg"><label>Producto</label><select id="mv-producto" onchange="updatePreview()"></select></div>
+        <div class="fg-row">
+          <div class="fg" style="flex:1"><label>Tipo</label>
+            <select id="mv-tipo" onchange="updatePreview()">
+              <option value="entrada">↓ Entrada al galpón</option>
+              <option value="salida">↑ Salida del galpón</option>
+            </select>
+          </div>
+          <div class="fg" style="flex:1"><label>Cantidad</label>
+            <input type="number" id="mv-cantidad" min="0.01" step="0.01" placeholder="Ej: 100" oninput="updatePreview()">
+          </div>
+        </div>
+        <div class="fg">
+          <label>Fila del galpón (opcional)</label>
+          <select id="mv-fila" onchange="updatePreview();updateMvFilaInfo()">
+            <option value="">— Sin fila específica —</option>
+          </select>
+          <div id="mv-fila-info" style="font-size:11.5px;color:var(--text-muted);margin-top:4px;font-family:var(--mono);display:none;"></div>
+        </div>
+        <div class="fg"><label>Motivo / observación (opcional)</label>
+          <input type="text" id="mv-motivo" placeholder="Ej: Recepción proveedor, venta campo, ajuste...">
+        </div>
+        <div id="mv-preview" class="preview-box"></div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button class="btn btn-dark" id="btn-confirmar" onclick="registrarMovimiento()">Confirmar y guardar</button>
+          <button class="btn btn-ghost" onclick="limpiarForm()">Cancelar</button>
+          <span id="mv-saving" style="font-size:12px;color:var(--text-muted);display:none;">Guardando...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div id="tab-historial" class="tab-content">
+    <div class="topbar">
+      <div><div class="page-title">Historial de movimientos</div><div class="page-sub">Registro de todos los movimientos y acciones</div></div>
+      <button class="btn-export" onclick="limpiarHistorial()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        Limpiar todo
+      </button>
+    </div>
+    <div class="content"><div id="historial-list"></div></div>
+  </div>
+
+  <!-- CONFIG -->
+  <div id="tab-config" class="tab-content">
+    <div class="topbar"><div><div class="page-title">Configuración</div><div class="page-sub">Productos, rubros y categorías</div></div></div>
+    <div class="content">
+
+      <!-- Agregar producto -->
+      <div class="config-section">
+        <div class="config-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Agregar producto
+        </div>
+        <div class="fg-row">
+          <div class="fg" style="flex:2"><label>Nombre del producto</label>
+            <input type="text" id="cfg-nombre" placeholder="Ej: GLIFOSATO SIGMA X20L">
+          </div>
+          <div class="fg" style="flex:1"><label>Rubro</label>
+            <select id="cfg-rubro-sel"></select>
+          </div>
+        </div>
+        <div class="fg-row">
+          <div class="fg" style="flex:1"><label>Stock físico inicial</label>
+            <input type="number" id="cfg-fisico" placeholder="0" step="0.01" min="0">
+          </div>
+          <div class="fg" style="flex:1"><label>Unidad</label>
+            <select id="cfg-unidad-sel"></select>
+          </div>
+          <div class="fg" style="flex:1"><label>Precio de venta inicial</label>
+            <input type="number" id="cfg-precio" placeholder="0" step="0.01" min="0">
+          </div>
+          <div class="fg" style="flex:1"><label>ID (opcional)</label>
+            <input type="text" id="cfg-id" placeholder="Ej: 6999">
+          </div>
+        </div>
+        <div class="fg-row">
+          <div class="fg" style="flex:1"><label>Fila del galpón (opcional)</label>
+            <select id="cfg-fila-sel">
+              <option value="">— Sin fila —</option>
+            </select>
+          </div>
+          <div class="fg" style="flex:1"><label>Presentación (opcional)</label>
+            <input type="text" id="cfg-presentacion" placeholder="Ej: Bidón 20L, Caja 4x5L">
+          </div>
+          <div class="fg" style="flex:1"><label>Cantidad contada (opcional)</label>
+            <input type="text" id="cfg-cantidad" placeholder="Ej: 5 bidones">
+          </div>
+          <div class="fg" style="flex:1"><label>Fecha de vencimiento</label>
+            <input type="date" id="cfg-venc">
+          </div>
+        </div>
+        <button class="btn btn-dark" onclick="agregarProducto()">Agregar producto</button>
+      </div>
+
+      <!-- Agregar rubro -->
+      <div class="config-section">
+        <div class="config-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+          Rubros disponibles
+        </div>
+        <div id="rubros-list" style="margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:7px;"></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="cfg-nuevo-rubro" placeholder="Nuevo rubro..." style="padding:8px 12px;font-size:13px;font-family:var(--font);border:.5px solid var(--border-dark);border-radius:8px;background:var(--bg);color:var(--text);outline:none;width:220px;">
+          <button class="btn btn-dark" onclick="agregarRubro()" style="padding:8px 16px;">Agregar</button>
+        </div>
+      </div>
+
+      <!-- Unidades -->
+      <div class="config-section">
+        <div class="config-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+          Unidades de medida
+        </div>
+        <div id="unidades-list" style="margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:7px;"></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="cfg-nueva-unidad" placeholder="Nueva unidad... ej: tn, m3" style="padding:8px 12px;font-size:13px;font-family:var(--font);border:.5px solid var(--border-dark);border-radius:8px;background:var(--bg);color:var(--text);outline:none;width:220px;">
+          <button class="btn btn-dark" onclick="agregarUnidad()" style="padding:8px 16px;">Agregar</button>
+        </div>
+      </div>
+
+      <!-- Lista de productos -->
+      <div class="config-section">
+        <div class="config-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Productos registrados
+          <span id="cfg-prod-count" style="font-size:12px;color:var(--text-muted);font-weight:400;margin-left:4px;"></span>
+        </div>
+        <div class="srch" style="margin-bottom:.9rem;width:100%;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="cfg-buscar" placeholder="Buscar producto..." oninput="renderConfigList()" style="width:100%;">
+        </div>
+        <div id="cfg-prod-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FILAS DEL GALPÓN -->
+  <div id="tab-filas" class="tab-content">
+    <div class="topbar">
+      <div><div class="page-title">Filas del galpón</div><div class="page-sub">Organización física del depósito · con semáforo, alertas de vencimiento y acciones rápidas</div></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-export" id="btn-patch-stock" onclick="aplicarPatchStock()" style="color:var(--accent);border-color:var(--accent-border);font-weight:600;">
+          ↺ Actualizar stock 23/05
+        </button>
+        <button class="btn-export" onclick="abrirVencBulk()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Cargar vencimientos
+        </button>
+        <button class="btn-export" onclick="agregarFila()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nueva fila
+        </button>
+      </div>
+    </div>
+    <div class="content">
+      <div id="venc-banner" style="display:none;background:var(--danger-light);border:.5px solid var(--danger-border);border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:13px;color:var(--danger);"></div>
+      <div class="fila-controls">
+        <div class="srch">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="filas-buscar" placeholder="Buscar producto en filas..." oninput="renderFilas()">
+        </div>
+        <select class="flt" id="filas-filtro" onchange="renderFilas()">
+          <option value="">Todas las filas</option>
+          <option value="venc">⚠ Con vencimientos próximos</option>
+          <option value="pend">🟡 Con pendientes</option>
+        </select>
+        <div style="margin-left:auto;display:flex;gap:10px;align-items:center;font-size:12px;color:var(--text-muted);">
+          <span><span class="semaforo sem-ok"></span>OK</span>
+          <span><span class="semaforo sem-pend"></span>Pendiente</span>
+          <span><span class="semaforo sem-diff"></span>Por vencer</span>
+        </div>
+      </div>
+      <div id="filas-container"></div>
+    </div>
+  </div>
+
+  <!-- STOCK POR PRODUCTO -->
+  <div id="tab-resumen" class="tab-content active">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Stock por producto</div>
+        <div class="page-sub">Stock real del galpón · calculado desde las filas · se actualiza con cada movimiento</div>
+      </div>
+      <button class="btn-export" onclick="exportarResumenCSV()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Exportar CSV
+      </button>
+    </div>
+    <div class="content">
+      <div class="metrics-grid" id="resumen-metrics"></div>
+      <div class="sec-header">
+        <div class="sec-title">Totales por producto</div>
+        <div class="controls">
+          <div class="srch">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="res-buscar" placeholder="Buscar producto..." oninput="renderResumen()">
+          </div>
+          <select class="flt" id="res-unidad" onchange="renderResumen()">
+            <option value="">Todas las unidades</option>
+          </select>
+        </div>
+      </div>
+      <div class="tw">
+        <table>
+          <thead><tr>
+            <th style="width:40%">Producto</th>
+            <th style="width:8%;text-align:center">Tipo</th>
+            <th style="width:10%;text-align:right">Total</th>
+            <th style="width:6%;text-align:center">Ud</th>
+            <th style="width:12%;text-align:left">Filas</th>
+            <th style="width:14%">Vencimiento próximo</th>
+            <th style="width:10%;text-align:center">Estado</th>
+          </tr></thead>
+          <tbody id="res-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL VENCIMIENTOS MASIVOS -->
+<div class="overlay" id="overlay-venc-bulk" onclick="if(event.target===this)cerrarVencBulk()">
+  <div class="modal" style="width:720px;max-height:85vh;">
+    <button class="modal-close" onclick="cerrarVencBulk()">×</button>
+    <div class="modal-title">Fechas de vencimiento</div>
+    <div class="modal-sub" id="venc-bulk-sub">Cargá las fechas de corrido · cada producto en cada fila es independiente</div>
+    <div style="max-height:55vh;overflow-y:auto;margin-bottom:1.25rem;">
+      <table class="venc-bulk-table">
+        <thead><tr>
+          <th style="width:32%">Producto</th>
+          <th style="width:12%">Fila</th>
+          <th style="width:14%;text-align:right">Total</th>
+          <th style="width:20%">Fecha vencimiento</th>
+          <th style="width:22%">Estado</th>
+        </tr></thead>
+        <tbody id="venc-bulk-tbody"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="btn btn-dark" onclick="guardarVencimientos()">Guardar todas las fechas</button>
+      <button class="btn btn-ghost" onclick="cerrarVencBulk()">Cancelar</button>
+      <span id="venc-bulk-resumen" style="font-size:12px;color:var(--text-muted);margin-left:auto;"></span>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ITEM FILA -->
+<div class="overlay" id="overlay-fila-item" onclick="if(event.target===this)cerrarFilaModal()">
+  <div class="modal" style="width:520px;">
+    <button class="modal-close" onclick="cerrarFilaModal()">×</button>
+    <div class="modal-title" id="fi-modal-title">Agregar producto</div>
+    <div class="modal-sub">Completá los datos del producto en esta fila</div>
+    <div class="fg-row">
+      <div class="fg" style="flex:2"><label>Producto</label><input type="text" id="fi-prod" placeholder="Ej: Glifosato Full II Sigma"></div>
+      <div class="fg" style="flex:1"><label>Tipo</label>
+        <select id="fi-tipo">
+          <option value="liquido">🧪 Líquido</option>
+          <option value="caja">📦 Caja</option>
+          <option value="quimico">🔬 Químico sólido</option>
+          <option value="semilla">🌱 Semilla</option>
+          <option value="otro">📋 Otro</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg" style="flex:1"><label>Presentación</label><input type="text" id="fi-pres" placeholder="Ej: Bidón 20L"></div>
+      <div class="fg" style="flex:1"><label>Cantidad contada</label><input type="text" id="fi-cant" placeholder="Ej: 48 bidones"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg" style="flex:1"><label>Total (número)</label><input type="number" id="fi-total" step="0.01" placeholder="Ej: 960"></div>
+      <div class="fg" style="flex:1"><label>Unidad</label>
+        <select id="fi-unidad"></select>
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg" style="flex:1"><label>Fecha de vencimiento</label><input type="date" id="fi-venc"></div>
+      <div class="fg" style="flex:1"><label>Estado</label>
+        <select id="fi-estado">
+          <option value="ok">🟢 OK</option>
+          <option value="pend">🟡 Conteo pendiente</option>
+          <option value="diff">🔴 Diferencia detectada</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Notas (opcional)</label><input type="text" id="fi-notas" placeholder="Ej: Pendiente verificar, roto, etc."></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-dark" onclick="guardarFilaItem()">Guardar</button>
+      <button class="btn btn-ghost" onclick="cerrarFilaModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ACCIONES RAPIDAS FILA -->
+<div class="overlay" id="overlay-fila-accion" onclick="if(event.target===this)cerrarAccionModal()">
+  <div class="modal" style="width:420px;">
+    <button class="modal-close" onclick="cerrarAccionModal()">×</button>
+    <div class="modal-title" id="fa-titulo">—</div>
+    <div class="modal-sub" id="fa-sub">—</div>
+    <div id="fa-body"></div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE -->
+<div class="overlay" id="overlay-detalle" onclick="if(event.target===this)cerrarDetalle()">
+  <div class="modal">
+    <button class="modal-close" onclick="cerrarDetalle()">×</button>
+    <div class="modal-title" id="det-nombre">—</div>
+    <div class="modal-sub" id="det-rubro">—</div>
+
+    <div class="detail-block">
+      <div class="detail-block-title">Stock físico</div>
+      <div class="detail-row"><label>En galpón ahora mismo</label><div class="val" id="det-fisico">—</div></div>
+    </div>
+
+    <div class="detail-block">
+      <div class="detail-block-title">Compras pendientes</div>
+      <div class="detail-row"><label>Recibido, pendiente de factura</label><input type="number" step="0.01" id="det-crpf" oninput="recalcContable()"></div>
+      <div class="detail-row"><label>Facturado, pendiente de recibir</label><input type="number" step="0.01" id="det-cfpr" oninput="recalcContable()"></div>
+    </div>
+
+    <div class="detail-block">
+      <div class="detail-block-title">Ventas pendientes</div>
+      <div class="detail-row"><label>Entregado, pendiente de factura</label><input type="number" step="0.01" id="det-vepf" oninput="recalcContable()"></div>
+      <div class="detail-row"><label>Facturado, pendiente de entregar</label><input type="number" step="0.01" id="det-vfpe" oninput="recalcContable()"></div>
+    </div>
+
+    <div class="contable-result">
+      <div>
+        <div class="lbl">Stock contable calculado</div>
+        <div class="formula">Físico + C.rec.pf + C.fact.pr − V.ent.pf − V.fact.pe</div>
+      </div>
+      <div class="num" id="det-contable">—</div>
+    </div>
+
+    <!-- STOCK MÍNIMO -->
+    <div class="detail-block">
+      <div class="detail-block-title">Alerta de stock mínimo</div>
+      <div class="detail-row">
+        <label>Umbral de stock bajo — si el físico cae a este valor o menos, aparece en amarillo</label>
+        <input type="number" step="1" min="0" id="det-minimo" placeholder="20">
+      </div>
+    </div>
+
+    <!-- PRECIO -->
+    <div class="detail-block">
+      <div class="detail-block-title">Precio de venta</div>
+      <div class="detail-row">
+        <label>Precio actual</label>
+        <input type="number" step="0.01" min="0" id="det-precio" placeholder="$ 0,00">
+      </div>
+      <div class="price-hist" id="price-hist-wrap" style="display:none;">
+        <div class="price-hist-title">Historial de precios</div>
+        <div id="price-hist-list"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-dark" onclick="guardarDetalle()">Guardar y sincronizar</button>
+      <button class="btn btn-ghost" onclick="cerrarDetalle()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR MOVIMIENTO -->
+<div class="overlay" id="overlay-edit" onclick="if(event.target===this)cerrarEdit()">
+  <div class="modal" style="width:440px;">
+    <button class="modal-close" onclick="cerrarEdit()">×</button>
+    <div class="modal-title">Editar movimiento</div>
+    <div class="modal-sub" id="edit-prod-name">—</div>
+    <div class="fg-row">
+      <div class="fg" style="flex:1"><label>Tipo</label>
+        <select id="edit-tipo"><option value="entrada">↓ Entrada</option><option value="salida">↑ Salida</option></select>
+      </div>
+      <div class="fg" style="flex:1"><label>Cantidad</label>
+        <input type="number" step="0.01" id="edit-cant">
+      </div>
+    </div>
+    <div class="fg"><label>Motivo (opcional)</label><input type="text" id="edit-motivo"></div>
+    <div id="edit-info" style="font-size:12px;color:var(--text-muted);font-family:var(--mono);margin-bottom:1rem;padding:7px 11px;background:#f9f8f5;border:.5px solid var(--border);border-radius:8px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-dark" onclick="guardarEdit()">Guardar y sincronizar</button>
+      <button class="btn btn-ghost" onclick="cerrarEdit()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR PRODUCTO (config) -->
+<div class="overlay" id="overlay-edit-prod" onclick="if(event.target===this)cerrarEditProd()">
+  <div class="modal" style="width:440px;">
+    <button class="modal-close" onclick="cerrarEditProd()">×</button>
+    <div class="modal-title">Editar producto</div>
+    <div class="modal-sub" id="edit-prod-sub">—</div>
+    <div class="fg"><label>Nombre</label><input type="text" id="ep-nombre"></div>
+    <div class="fg"><label>Rubro</label><select id="ep-rubro"></select></div>
+    <div class="fg"><label>Stock mínimo (umbral de alerta)</label><input type="number" id="ep-minimo" min="0" step="1" placeholder="20"></div>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="btn btn-dark" onclick="guardarEditProd()">Guardar</button>
+      <button class="btn btn-ghost" onclick="cerrarEditProd()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATOS GUARDADOS (fallback offline) ─────────────────────
+const SAVED_INV=null;
+const SAVED_HIST=null;
+const SAVED_RUB=null;
+const SAVED_FILAS=[{"id": "f1", "nombre": "Fila 1", "color": "#2d6a4f", "items": [{"prod": "Acuron Pack", "tipo": "liquido", "presentacion": "Caja 4x5L", "cantidad": "20 cajas", "total": 20.0, "unidad": "Packs", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Ampligo", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 27.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Banvel", "tipo": "liquido", "presentacion": "Bidón 5L", "cantidad": "1 bidón", "total": 302.5, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Enelan", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 335.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Engeo S", "tipo": "liquido", "presentacion": "Caja 4x5L + bidón 5L", "cantidad": "15 cajas + 1 bidón", "total": 315.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Festio Triple Pack", "tipo": "liquido", "presentacion": "Caja 4x4,5L", "cantidad": "6 cajas", "total": 50.0, "unidad": "Packs", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Flontus", "tipo": "liquido", "presentacion": "Bidón 6,5L", "cantidad": "1 bidón", "total": 32.5, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Mazen Ace 4x5L", "tipo": "liquido", "presentacion": "Bidón 5L", "cantidad": "8 bidones", "total": 40.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Miravis Duo", "tipo": "liquido", "presentacion": "Caja 4x5L", "cantidad": "45 cajas", "total": 900.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Planter", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 160.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "StimWize Energizer", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 140.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "StimWize verde", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 240.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Vibrance Gold 4x5L", "tipo": "liquido", "presentacion": "Caja 4x5L + bidones 5L", "cantidad": "31 cajas + 2 bidones", "total": 635.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Vibrance Integral 4x5L", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 40.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Voleris", "tipo": "liquido", "presentacion": "Bidón 20L", "cantidad": "32 bidones", "total": 1346.67, "unidad": "L", "venc": "", "estado": "ok", "notas": "Syngenta"}, {"prod": "Zeek", "tipo": "liquido", "presentacion": "Caja 4x5L", "cantidad": "4 cajas + 2 bidones", "total": 90.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}]}, {"id": "f2", "nombre": "Fila 2", "color": "#b45309", "items": [{"prod": "Bolsas maíz", "tipo": "liquido", "presentacion": "Bolsa", "cantidad": "2 bolsas", "total": 20.0, "unidad": "kg", "venc": "", "estado": "ok", "notas": "Verificar kg/bolsa"}, {"prod": "Chikara", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 10.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Cruiser Pack HC", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 13.67, "unidad": "Packs", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Dagger 60 WG - Metsulfuron", "tipo": "liquido", "presentacion": "Sobre 100gr", "cantidad": "4 sobres", "total": 100.0, "unidad": "gr", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Festio Triple Pack", "tipo": "liquido", "presentacion": "Caja 4x4,5L", "cantidad": "19 cajas", "total": 50.0, "unidad": "Packs", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Glifosato Full II Sigma", "tipo": "liquido", "presentacion": "Bidón 20L", "cantidad": "48 bidones", "total": 1680.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Metsulfuron", "tipo": "liquido", "presentacion": "Sobre 100gr", "cantidad": "4 sobres", "total": 400.0, "unidad": "gr", "venc": "", "estado": "ok", "notas": ""}, {"prod": "speedwet xion silicongel", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 12.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Stimwise Boro (blanco)", "tipo": "liquido", "presentacion": "Bidón 20L", "cantidad": "13 bidones", "total": 260.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Stimwise Verde", "tipo": "liquido", "presentacion": "Bidón 20L", "cantidad": "11 bidones", "total": 340.0, "unidad": "L", "venc": "", "estado": "ok", "notas": "7 orig. + 4 de fila 4"}, {"prod": "Sulfosato Touchdown Max", "tipo": "liquido", "presentacion": "Pallet", "cantidad": "2 pallets", "total": 1765.0, "unidad": "kg", "venc": "", "estado": "ok", "notas": "Verificar unidades por pallet"}, {"prod": "Sunset 48 SC", "tipo": "liquido", "presentacion": "Bidón 20L", "cantidad": "2 bidones", "total": 40.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Tekove - Mesotrione", "tipo": "liquido", "presentacion": "Bidón 20L", "cantidad": "20 bidones", "total": 400.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Tribu 48 SG - Mesotrione", "tipo": "liquido", "presentacion": "Bidón 20L", "cantidad": "4 bidones", "total": 80.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Virantra 4x5L", "tipo": "liquido", "presentacion": "Caja 4x5L", "cantidad": "6 cajas", "total": 230.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}]}, {"id": "f3", "nombre": "Fila 3", "color": "#1a5276", "items": [{"prod": "Amistar Xtra", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 340.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Glifosato Full II Sigma", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 1680.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Hydrop 10", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 84.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Hydrop 360", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 50.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Hydrop Mix", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 60.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Hydrop Oil", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 380.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Moddus", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 195.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Sulfosato", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 1673.33, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Voleris", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 1346.67, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}]}, {"id": "f4", "nombre": "Fila 4", "color": "#9b1c1c", "items": [{"prod": "Banvel", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 302.5, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Clearsol DF", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 33.6, "unidad": "kg", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Dual Gold", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 506.67, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Enelan", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 335.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Gesaprim 90 WDGT", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 1540.0, "unidad": "kg", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Glifosato Full II Sigma", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 1680.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Miravis Triple Pack", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 30.0, "unidad": "Packs", "venc": "", "estado": "ok", "notas": ""}, {"prod": "TALIS", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 400.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}]}, {"id": "f5", "nombre": "Fila 5", "color": "#4a235a", "items": [{"prod": "Sulfosato", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 1673.33, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Voleris", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 1346.66, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}]}, {"id": "f6", "nombre": "Fila 6", "color": "#7e4000", "items": [{"prod": "Semillas", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 0.0, "unidad": "—", "venc": "", "estado": "ok", "notas": ""}]}, {"id": "f7", "nombre": "Fila 7", "color": "#0c5460", "items": [{"prod": "Semillas", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 0.0, "unidad": "—", "venc": "", "estado": "ok", "notas": ""}]}, {"id": "f8", "nombre": "Fila 8", "color": "#155724", "items": [{"prod": "Dual Gold", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 506.67, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Glifosato Full II Sigma", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 1680.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Goten (Atrazina)", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 1100.0, "unidad": "kg", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Karate Zeon", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 145.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Peak Pack L", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 73.0, "unidad": "cajas", "venc": "", "estado": "ok", "notas": ""}]}, {"id": "f9", "nombre": "Fila 9", "color": "#512b2b", "items": [{"prod": "Axial Plus", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 15.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Cleto 24% EC", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 20.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Cletodim Sigma", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 460.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Dual Gold", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 506.66, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Hydrop Oil", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 380.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Megafol", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 1460.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "PARAQUAT SIGMA", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 200.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}]}, {"id": "f10", "nombre": "Fila 10", "color": "#7d6608", "items": [{"prod": "Acuron Uno", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 2.5, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Curyom FitUV", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 20.0, "unidad": "kg", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Nuvoxl", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 160.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Stimwise Verde", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 340.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Vesdua", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 135.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}]}, {"id": "f11", "nombre": "Fila 11", "color": "#2d6a4f", "items": [{"prod": "Acuron Uno", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 2.5, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Dicamba Sigma", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 380.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Diflufenican 50 Sigma", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 115.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Megafol", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 1460.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Reglone", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 10.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Tuken SC", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 5.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}]}, {"id": "f12", "nombre": "Fila 12", "color": "#b45309", "items": [{"prod": "Sulfosato", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 1673.34, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Sulfosato Touchdown Max", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 1765.0, "unidad": "kg", "venc": "", "estado": "ok", "notas": ""}, {"prod": "Zavovia", "tipo": "liquido", "presentacion": "—", "cantidad": "—", "total": 80.0, "unidad": "L", "venc": "", "estado": "ok", "notas": ""}]}];
+
+// Datos embebidos directamente en el HTML — sin almacenamiento externo
+
+const BASE=[
+  {id:'6129',nombre:'WUXAL COMBI MN X10LT',rubro:'Fertilizantes',fisico:600,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6132',nombre:'MEGAFOL 20 L',rubro:'Bioestimulantes',fisico:2920,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6133',nombre:'STIMWISE COMPLEX X20LT',rubro:'Bioestimulantes',fisico:920,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6140',nombre:'HYDROP 10',rubro:'Coayudantes',fisico:117,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6143',nombre:'HYDROP 360',rubro:'Coayudantes',fisico:50,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6142',nombre:'HYDROP MIX',rubro:'Coayudantes',fisico:60,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6141',nombre:'HYDROP OIL',rubro:'Coayudantes',fisico:790,crpf:0,cfpr:0,vepf:20,vfpe:0,precio:0,precioHist:[]},
+  {id:'6148',nombre:'SPEEDWET XION SILICONGEL',rubro:'Coayudantes',fisico:12,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6150',nombre:'CRUISER PACK HC',rubro:'Curasemillas',fisico:13.67,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6151',nombre:'VIBRANCE GOLD 4X5L',rubro:'Curasemillas',fisico:480,crpf:0,cfpr:0,vepf:160,vfpe:0,precio:0,precioHist:[]},
+  {id:'6152',nombre:'VIBRANCE GOLD X200L',rubro:'Curasemillas',fisico:200,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6153',nombre:'VIBRANCE INTEGRAL 4X5 L',rubro:'Curasemillas',fisico:30,crpf:600,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6155',nombre:'AMISTAR XTRA',rubro:'Fungicidas',fisico:300,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6157',nombre:'FESTIO TRIPLE PACK',rubro:'Fungicidas',fisico:120,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6158',nombre:'MAZEN ACE 4X5L',rubro:'Fungicidas',fisico:45,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6160',nombre:'MIRAVIS TRIPLE PACK 1 PC',rubro:'Fungicidas',fisico:30,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6164',nombre:'ACURON UNO - BICICLOPIRONA',rubro:'Herbicidas',fisico:-595,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6168',nombre:'AXIAL PLUS',rubro:'Herbicidas',fisico:15,crpf:0,cfpr:0,vepf:0,vfpe:100,precio:0,precioHist:[]},
+  {id:'6169',nombre:'BANVEL 4X5L - DICAMBA',rubro:'Herbicidas',fisico:925,crpf:0,cfpr:0,vepf:10,vfpe:600,precio:0,precioHist:[]},
+  {id:'6171',nombre:'BIFENTRIN',rubro:'Herbicidas',fisico:100,crpf:0,cfpr:0,vepf:0,vfpe:10,precio:0,precioHist:[]},
+  {id:'6175',nombre:'CHIKARA 4X5L ARA - PYROXASULFONE 48%',rubro:'Herbicidas',fisico:10,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6177',nombre:'CLEARSOL DF 2X600GR',rubro:'Herbicidas',fisico:33.6,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6181',nombre:'DICAMBA SIGMA X10LTS',rubro:'Herbicidas',fisico:390,crpf:0,cfpr:0,vepf:0,vfpe:30,precio:0,precioHist:[]},
+  {id:'6182',nombre:'DIFLUFENICAN 50 SIGMA',rubro:'Herbicidas',fisico:245,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6183',nombre:'DUAL GOLD 4X5L - S-METOLACLORO',rubro:'Herbicidas',fisico:1515,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6185',nombre:'ENELAN - SULFENTRAZONE 50%',rubro:'Herbicidas',fisico:670,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6186',nombre:'FLONTUS - S-METOLACLORO',rubro:'Herbicidas',fisico:32.5,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6166',nombre:'GESAPRIM 90 WG - ATRAZINA',rubro:'Herbicidas',fisico:2270,crpf:0,cfpr:0,vepf:0,vfpe:500,precio:0,precioHist:[]},
+  {id:'6206',nombre:'GLIFOSATO FULL II SIGMA',rubro:'Herbicidas',fisico:20,crpf:0,cfpr:6720,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6167',nombre:'GOTEN T 10 KG - ATRAZINA',rubro:'Herbicidas',fisico:1130,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6190',nombre:'IMAZETHAPYR',rubro:'Herbicidas',fisico:160,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6196',nombre:'METSULFURON',rubro:'Herbicidas',fisico:-0.5,crpf:0,cfpr:0,vepf:0.5,vfpe:1.3,precio:0,precioHist:[]},
+  {id:'6197',nombre:'MODDUS 4X5L',rubro:'Herbicidas',fisico:15,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6199',nombre:'NUVOXL X 20L - GLIFOSATO',rubro:'Herbicidas',fisico:320,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6201',nombre:'PEAK PACK L 1PC',rubro:'Herbicidas',fisico:78,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6202',nombre:'PICLORAM X10L',rubro:'Herbicidas',fisico:30,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6204',nombre:'RAINBOW 2X10L - FLUROCLORIDONA',rubro:'Herbicidas',fisico:0,crpf:0,cfpr:0,vepf:320,vfpe:0,precio:0,precioHist:[]},
+  {id:'6205',nombre:'REGLONE 4X5L - DIBROMURO DE DIQUAT',rubro:'Herbicidas',fisico:10,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6179',nombre:'SIGMA - CLETODIM 24%',rubro:'Herbicidas',fisico:-120,crpf:360,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6210',nombre:'SULFOSATO TOUCHDOWN MAX - GLIFOSATO 69%',rubro:'Herbicidas',fisico:3120,crpf:0,cfpr:0,vepf:0,vfpe:5390,precio:0,precioHist:[]},
+  {id:'6211',nombre:'SULFOSATO TOUCHDOWN X 20L - GLIFOSATO 50,6%',rubro:'Herbicidas',fisico:6860,crpf:0,cfpr:0,vepf:0,vfpe:660,precio:0,precioHist:[]},
+  {id:'6212',nombre:'TEKOVE - MESOTRIONE',rubro:'Herbicidas',fisico:400,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6180',nombre:'TRASPECT M 20L - CLETODIM 24%',rubro:'Herbicidas',fisico:1120,crpf:0,cfpr:0,vepf:0,vfpe:1580,precio:0,precioHist:[]},
+  {id:'6215',nombre:'VESDUA 4X5L - FLUMIOXAZIN 48%',rubro:'Herbicidas',fisico:155,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6216',nombre:'VOLERIS 20L - 2,4D ethil-exil 89%',rubro:'Herbicidas',fisico:4720,crpf:0,cfpr:0,vepf:0,vfpe:2340,precio:0,precioHist:[]},
+  {id:'6217',nombre:'ZAVOBIA 4X5L - HALOXYFOP 54%',rubro:'Herbicidas',fisico:80,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6219',nombre:'AMPLIGO 12X1 L',rubro:'Insecticidas',fisico:27,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6220',nombre:'ENGEO S',rubro:'Insecticidas',fisico:330,crpf:0,cfpr:0,vepf:0,vfpe:15,precio:0,precioHist:[]},
+  {id:'6221',nombre:'KARATE ZEON 25 12X1L',rubro:'Insecticidas',fisico:145,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6223',nombre:'VIRANTRA 4X5L',rubro:'Insecticidas',fisico:230,crpf:0,cfpr:0,vepf:0,vfpe:0,precio:0,precioHist:[]},
+  {id:'6227',nombre:'NS7765 Viptera3 Banda 1 (R2E)',rubro:'Semillas Maíz',fisico:0,crpf:0,cfpr:0,vepf:0,vfpe:150,precio:0,precioHist:[]},
+  {id:'6310',nombre:'NS1113CL Banda 2 (G3)',rubro:'Semillas Girasol',fisico:0,crpf:0,cfpr:0,vepf:0,vfpe:50,precio:0,precioHist:[]},
+  {id:'6340',nombre:'BAGUETTE 820',rubro:'Semillas Trigo',fisico:0,crpf:0,cfpr:0,vepf:0,vfpe:108,precio:0,precioHist:[]},
+  {id:'6342',nombre:'DM 25E23 SE (ENLIST)',rubro:'Semillas Soja',fisico:0,crpf:0,cfpr:0,vepf:0,vfpe:142,precio:0,precioHist:[]},
+  {id:'6343',nombre:'DM 33E22 SE (ENLIST)',rubro:'Semillas Soja',fisico:0,crpf:0,cfpr:0,vepf:0,vfpe:455,precio:0,precioHist:[]},
+];
+
+const BASE_RUBROS=['Fertilizantes','Bioestimulantes','Coayudantes','Curasemillas','Fungicidas','Herbicidas','Insecticidas','Semillas Maíz','Semillas Girasol','Semillas Trigo','Semillas Soja'];
+const BASE_UNIDADES=['L','kg','gr','u','cajas','bolsas','—'];
+
+let inv=[], hist=[], rubros=[], unidades=[], editIdx=null, detId=null, editProdId=null;
+
+// ── PERSISTENCIA LOCAL ────────────────────────────────────
+function setSyncStatus(state,text){
+  const el=document.getElementById('sync-status');
+  if(el){el.className='sync-status '+state;document.getElementById('sync-text').textContent=text;}
+}
+function setUltimaSync(){
+  const el=document.getElementById('ultima-sync');
+  if(el)el.textContent=new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+}
+
+async function fetchData(){
+  setSyncStatus('loading','Conectando...');
+  try{
+    // Esperar a que Firebase esté listo (máx 5 seg)
+    if(!window._fbReady){
+      await new Promise((res,rej)=>{
+        const t=setTimeout(()=>rej('timeout'),5000);
+        document.addEventListener('fb-ready',()=>{clearTimeout(t);res();},{once:true});
+      });
+    }
+    const [data, histData] = await Promise.all([window._fbLoad(), window._fbLoadHist()]);
+    if(data && data.inv && data.inv.length>0){
+      inv      = data.inv;
+      hist     = histData || [];
+      rubros   = data.rubros   && data.rubros.length>0   ? data.rubros   : [...BASE_RUBROS];
+      unidades = data.unidades && data.unidades.length>0 ? data.unidades : [...BASE_UNIDADES];
+      // Use SAVED_FILAS if embedded (manual override), otherwise use Firebase
+      filas    = (SAVED_FILAS && SAVED_FILAS.length>0) ? JSON.parse(JSON.stringify(SAVED_FILAS)) : (data.filas && data.filas.length>0 ? data.filas : JSON.parse(JSON.stringify(FILAS_BASE)));
+      setSyncStatus('ok','Conectado · '+hist.length+' mov.');
+    } else {
+      // Primera vez — subir datos base
+      inv      = JSON.parse(JSON.stringify(BASE));
+      hist     = [];
+      rubros   = [...BASE_RUBROS];
+      unidades = [...BASE_UNIDADES];
+      filas    = JSON.parse(JSON.stringify(FILAS_BASE));
+      setSyncStatus('ok','Datos iniciales cargados');
+      await saveAll();
+    }
+    setUltimaSync();
+    return true;
+  }catch(e){
+    console.error('fetchData error:', e);
+    setSyncStatus('error','Sin conexión');
+    // Fallback a datos embebidos o BASE
+    if(SAVED_INV&&SAVED_INV.length>0){
+      inv=JSON.parse(JSON.stringify(SAVED_INV));
+      hist=SAVED_HIST||[];
+      rubros=SAVED_RUB||[...BASE_RUBROS];
+      unidades=[...BASE_UNIDADES];
+      filas=SAVED_FILAS||JSON.parse(JSON.stringify(FILAS_BASE));
+    } else {
+      inv=JSON.parse(JSON.stringify(BASE));hist=[];rubros=[...BASE_RUBROS];
+      unidades=[...BASE_UNIDADES];
+      filas=JSON.parse(JSON.stringify(FILAS_BASE));
+    }
+    return false;
+  }
+}
+
+
+async function saveAll(){
+  setSyncStatus('loading','Guardando...');
+  try{
+    if(!window._fbReady){
+      setSyncStatus('error','Firebase no listo');
+      showToast('⚠ Firebase no conectado todavía, reintentando...');
+      setTimeout(saveAll, 1500);
+      return;
+    }
+    await window._fbSave({inv, rubros, unidades, filas, ts: Date.now()});
+    setSyncStatus('ok','Guardado · '+hist.length+' mov.');
+    setUltimaSync();
+  }catch(e){
+    console.error('saveAll error:', e);
+    setSyncStatus('error','Error al guardar');
+    showToast('⚠ No se pudo guardar — revisá la conexión');
+  }
+}
+
+
+async function syncNow(){
+  await fetchData();
+  populateFiltros();renderMetrics();renderTabla();populateProductoSelect();
+  renderRubros();renderConfigList();populateRubroSelects();
+  const tab=document.querySelector('.tab-content.active');
+  if(tab&&tab.id==='tab-historial')renderHistorial();
+  if(tab&&tab.id==='tab-filas')renderFilas();
+  showToast('✓ Datos actualizados desde Firebase');
+}
+
+
+// ── HELPERS ────────────────────────────────────────────────
+function cont(p){return p.fisico+(p.crpf||0)+(p.cfpr||0)-(p.vepf||0)-(p.vfpe||0);}
+function est(f,minimo){const m=minimo||20;return f<=0?'danger':f<=m?'warn':'ok';}
+function estLbl(f,minimo){const m=minimo||20;return f<=0?'Sin stock':f<=m?'Stock bajo':'Normal';}
+function fmt(n){return parseFloat(parseFloat(n).toFixed(2)).toLocaleString('es-AR');}
+function fmtD(n){const r=parseFloat(parseFloat(n).toFixed(2));return(r>0?'+':'')+r.toLocaleString('es-AR');}
+function fmtP(n){if(!n||n===0)return'—';return'$\u00a0'+parseFloat(parseFloat(n).toFixed(2)).toLocaleString('es-AR',{minimumFractionDigits:2});}
+function mesAnio(dateStr){
+  try{const d=new Date(dateStr);return d.toLocaleDateString('es-AR',{month:'long',year:'numeric'});}
+  catch(e){return dateStr;}
+}
+
+// ── RENDER TABLA STOCK ─────────────────────────────────────
+function renderMetrics(){
+  document.getElementById('m-total').textContent=inv.length;
+  document.getElementById('m-ok').textContent=inv.filter(p=>est(p.fisico,p.minimo)==='ok').length;
+  document.getElementById('m-warn').textContent=inv.filter(p=>est(p.fisico,p.minimo)==='warn').length;
+  document.getElementById('m-danger').textContent=inv.filter(p=>est(p.fisico,p.minimo)==='danger').length;
+  const crit=inv.filter(p=>p.fisico<0);
+  const b=document.getElementById('alert-banner');
+  if(crit.length){b.textContent=`⚠ ${crit.length} producto${crit.length>1?'s':''} con stock negativo: ${crit.slice(0,3).map(p=>p.nombre).join(', ')}${crit.length>3?' y más...':''}`;b.classList.add('show');}
+  else b.classList.remove('show');
+}
+function populateFiltros(){
+  const sel=document.getElementById('filtro-rubro');
+  const curr=sel.value;
+  sel.innerHTML='<option value="">Todos los rubros</option>'+[...new Set(inv.map(p=>p.rubro))].sort().map(r=>`<option value="${r}">${r}</option>`).join('');
+  sel.value=curr;
+}
+function renderTabla(){
+  const b=document.getElementById('buscar').value.toLowerCase();
+  const r=document.getElementById('filtro-rubro').value;
+  const e=document.getElementById('filtro-estado').value;
+  const data=inv.filter(p=>{
+    if(b&&!p.nombre.toLowerCase().includes(b))return false;
+    if(r&&p.rubro!==r)return false;
+    if(e&&est(p.fisico)!==e)return false;
+    return true;
+  });
+  const tbody=document.getElementById('tbody');
+  if(!data.length){tbody.innerHTML='<tr><td colspan="8" class="empty"><div class="ico">📦</div>No se encontraron productos</td></tr>';return;}
+  tbody.innerHTML=data.map(p=>{
+    const c=cont(p),diff=c-p.fisico,e2=est(p.fisico,p.minimo);
+    const dc=diff===0?'var(--text-muted)':diff>0?'var(--accent)':'var(--danger)';
+    return`<tr>
+      <td title="${p.nombre}" style="font-weight:500;">${p.nombre}</td>
+      <td style="color:var(--text-muted);font-size:12px;">${p.rubro}</td>
+      <td style="text-align:right;font-family:var(--mono);">${fmt(p.fisico)}</td>
+      <td style="text-align:right;font-family:var(--mono);">${fmt(c)}</td>
+      <td style="text-align:right;font-family:var(--mono);color:${dc};">${fmtD(diff)}</td>
+      <td style="text-align:right;font-family:var(--mono);color:var(--accent);">${fmtP(p.precio)}</td>
+      <td style="text-align:center;"><span class="badge ${e2}">${estLbl(p.fisico,p.minimo)}</span></td>
+      <td style="text-align:center;"><button class="btn-sm" onclick="abrirDetalle('${p.id}')">Ver</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── DETALLE ────────────────────────────────────────────────
+function abrirDetalle(id){
+  const p=inv.find(x=>String(x.id)===String(id));
+  if(!p)return;
+  detId=String(id);
+  document.getElementById('det-nombre').textContent=p.nombre;
+  document.getElementById('det-rubro').textContent=p.rubro+' · ID '+p.id;
+  document.getElementById('det-fisico').textContent=fmt(p.fisico);
+  document.getElementById('det-crpf').value=p.crpf||0;
+  document.getElementById('det-cfpr').value=p.cfpr||0;
+  document.getElementById('det-vepf').value=p.vepf||0;
+  document.getElementById('det-vfpe').value=p.vfpe||0;
+  document.getElementById('det-precio').value=p.precio||0;
+  document.getElementById('det-minimo').value=p.minimo!=null?p.minimo:20;
+  recalcContable();
+  renderPriceHist(p);
+  document.getElementById('overlay-detalle').classList.add('open');
+}
+function cerrarDetalle(){document.getElementById('overlay-detalle').classList.remove('open');detId=null;}
+function recalcContable(){
+  if(!detId)return;
+  const p=inv.find(x=>String(x.id)===String(detId));
+  const f=p?p.fisico:0;
+  const c=f+(parseFloat(document.getElementById('det-crpf').value)||0)+(parseFloat(document.getElementById('det-cfpr').value)||0)-(parseFloat(document.getElementById('det-vepf').value)||0)-(parseFloat(document.getElementById('det-vfpe').value)||0);
+  document.getElementById('det-contable').textContent=fmt(c);
+}
+function renderPriceHist(p){
+  const wrap=document.getElementById('price-hist-wrap');
+  const list=document.getElementById('price-hist-list');
+  const ph=p.precioHist||[];
+  if(!ph.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  list.innerHTML=ph.slice().reverse().map(h=>`
+    <div class="price-hist-row">
+      <span class="ph-date">${mesAnio(h.fecha)}</span>
+      <span class="ph-price">${fmtP(h.precio)}</span>
+    </div>
+  `).join('');
+}
+async function guardarDetalle(){
+  const p=inv.find(x=>String(x.id)===String(detId));
+  if(!p)return;
+  p.crpf=parseFloat(document.getElementById('det-crpf').value)||0;
+  p.cfpr=parseFloat(document.getElementById('det-cfpr').value)||0;
+  p.vepf=parseFloat(document.getElementById('det-vepf').value)||0;
+  p.vfpe=parseFloat(document.getElementById('det-vfpe').value)||0;
+  p.minimo=parseFloat(document.getElementById('det-minimo').value)||20;
+  const nuevoPrecio=parseFloat(document.getElementById('det-precio').value)||0;
+  // guardar historial de precio si cambió
+  if(nuevoPrecio!==p.precio&&nuevoPrecio>0){
+    if(!p.precioHist)p.precioHist=[];
+    p.precioHist.push({precio:p.precio,fecha:new Date().toISOString().slice(0,7)});// YYYY-MM
+  }
+  p.precio=nuevoPrecio;
+  _registrarEnHistorial('contable', p.nombre, p.rubro, '—', '', null, null, 'Datos contables actualizados');
+  if(nuevoPrecio!==0)_registrarEnHistorial('precio', p.nombre, p.rubro, nuevoPrecio, '$', null, null, 'Precio de venta actualizado');
+  cerrarDetalle();renderTabla();renderHistorial();
+  saveAll();
+  showToast('✓ Datos guardados y sincronizados');
+}
+
+// ── MOVIMIENTO ─────────────────────────────────────────────
+function populateProductoSelect(){
+  const sorted=[...inv].sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  document.getElementById('mv-producto').innerHTML=sorted.map(p=>`<option value="${p.id}">${p.nombre} (físico: ${fmt(p.fisico)})</option>`).join('');
+  populateMvFilaSelect();
+}
+function populateMvFilaSelect(){
+  const sel=document.getElementById('mv-fila');
+  if(!sel)return;
+  const curr=sel.value;
+  sel.innerHTML='<option value="">— Sin fila específica —</option>'+
+    filas.map(f=>`<option value="${f.id}">${f.nombre} (${f.items.length} productos)</option>`).join('');
+  if(curr)sel.value=curr;
+  updateMvFilaInfo();
+}
+function updateMvFilaInfo(){
+  const filaId=document.getElementById('mv-fila')?.value;
+  const prodId=document.getElementById('mv-producto')?.value;
+  const infoEl=document.getElementById('mv-fila-info');
+  if(!infoEl)return;
+  if(!filaId){infoEl.style.display='none';return;}
+  const f=filas.find(x=>x.id===filaId);
+  const p=inv.find(x=>String(x.id)===String(prodId));
+  if(!f||!p){infoEl.style.display='none';return;}
+  // Buscar si el producto ya existe en esa fila
+  const norm=s=>s.toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+  const existing=f.items.find(i=>norm(i.prod).includes(norm(p.nombre).split(' ')[0])||norm(p.nombre).includes(norm(i.prod).split(' ')[0]));
+  if(existing){
+    infoEl.textContent=`${p.nombre} ya está en ${f.nombre}: ${fmt(existing.total??0)} ${existing.unidad}`;
+  } else {
+    infoEl.textContent=`${p.nombre} no está en ${f.nombre} — se va a agregar`;
+  }
+  infoEl.style.display='block';
+}
+function updatePreview(){
+  const id=document.getElementById('mv-producto').value;
+  const tipo=document.getElementById('mv-tipo').value;
+  const cant=parseFloat(document.getElementById('mv-cantidad').value)||0;
+  const filaId=document.getElementById('mv-fila')?.value||'';
+  const p=inv.find(x=>String(x.id)===String(id));
+  const el=document.getElementById('mv-preview');
+  if(!p||cant<=0){el.className='preview-box';updateMvFilaInfo();return;}
+  const nuevo=tipo==='entrada'?p.fisico+cant:p.fisico-cant;
+  // También mostrar impacto en fila si está seleccionada
+  let filaInfo='';
+  if(filaId){
+    const fila=filas.find(f=>f.id===filaId);
+    if(fila){
+      const norm=s=>s.toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+      const item=fila.items.find(i=>norm(i.prod).includes(norm(p.nombre).split(' ').filter(w=>w.length>3)[0]||'')||norm(p.nombre).includes(norm(i.prod).split(' ').filter(w=>w.length>3)[0]||''));
+      if(item&&item.total!=null){
+        const nuevFila=tipo==='entrada'?item.total+cant:Math.max(0,item.total-cant);
+        filaInfo=`<br><span style="opacity:.8">📦 ${fila.nombre}: ${fmt(item.total)} → <strong>${fmt(nuevFila)}</strong> ${item.unidad}</span>`;
+      }
+    }
+  }
+  el.innerHTML=`<strong>${p.nombre}</strong><br>Stock por producto: <strong>${fmt(p.fisico)}</strong> → <strong>${fmt(nuevo)}</strong> <span style="opacity:.7">(${tipo==='entrada'?'+':'−'}${fmt(cant)})</span>${filaInfo}`;
+  el.className='preview-box '+est(nuevo);
+  updateMvFilaInfo();
+}
+// ── HELPER HISTORIAL UNIFICADO ────────────────────────────
+function _registrarEnHistorial(tipo, producto, fila, cantidad, unidad, anterior, nuevo, motivo){
+  const now=new Date();
+  const fecha=now.toLocaleDateString('es-AR')+' '+now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  const mov={
+    id:Date.now(), ts:Date.now(), fecha,
+    producto, prodId:'', rubro: fila||'—',
+    tipo, cantidad, anterior: anterior??'—', nuevo: nuevo??'—',
+    motivo: motivo||'', unidad: unidad||''
+  };
+  hist.unshift(mov);
+  // Guardar en colección separada de Firestore
+  if(window._fbReady) window._fbAddHist(mov).catch(e=>console.error('addHist error',e));
+}
+
+async function registrarMovimiento(){
+  const id=document.getElementById('mv-producto').value;
+  const tipo=document.getElementById('mv-tipo').value;
+  const cant=parseFloat(document.getElementById('mv-cantidad').value);
+  const motivo=document.getElementById('mv-motivo').value.trim();
+  const filaId=document.getElementById('mv-fila')?.value||'';
+  if(!id){showToast('Seleccioná un producto');return;}
+  if(!cant||cant<=0){showToast('Ingresá una cantidad válida');return;}
+  const p=inv.find(x=>String(x.id)===String(id));
+  if(!p){showToast('Producto no encontrado');return;}
+  const btn=document.getElementById('btn-confirmar');
+  const saving=document.getElementById('mv-saving');
+  btn.disabled=true;saving.style.display='inline';
+  const anterior=p.fisico;
+  p.fisico=tipo==='entrada'?p.fisico+cant:p.fisico-cant;
+  const now=new Date();
+  const fecha=now.toLocaleDateString('es-AR')+' '+now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  const filaLabel=filaId?(filas.find(f=>f.id===filaId)?.nombre||''):'';
+
+  // ── Sincronizar con fila del galpón ──────────────────────
+  if(filaId){
+    const fila=filas.find(f=>f.id===filaId);
+    if(fila){
+      const norm=s=>s.toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+      const existIdx=fila.items.findIndex(i=>
+        norm(i.prod).includes(norm(p.nombre).split(' ').filter(w=>w.length>3)[0]||norm(p.nombre))||
+        norm(p.nombre).includes(norm(i.prod).split(' ').filter(w=>w.length>3)[0]||norm(i.prod))
+      );
+      if(existIdx>=0){
+        // Producto existe en la fila — actualizar total
+        const item=fila.items[existIdx];
+        const delta=tipo==='entrada'?cant:-cant;
+        if(item.total!=null) item.total=Math.max(0,parseFloat((item.total+delta).toFixed(2)));
+        // Si la salida dejó el total en 0, no eliminar — el usuario puede querer mantenerlo
+      } else if(tipo==='entrada'){
+        // Entrada: agregar producto a la fila
+        fila.items.push({
+          prod:p.nombre, tipo:'liquido', presentacion:'—',
+          cantidad:fmt(cant)+' '+( ['L','kg','gr'].includes(p.rubro)?'':'' ),
+          total:cant, unidad:'L', venc:'', estado:'ok',
+          notas:'Agregado desde Registrar movimiento'
+        });
+      }
+      // Salida con total 0: dejar en la fila con 0 (no eliminar automáticamente)
+    }
+  }
+
+  const mov={id:Date.now(),ts:Date.now(),fecha,producto:p.nombre,prodId:String(p.id),rubro:p.rubro,tipo,cantidad:cant,anterior,nuevo:p.fisico,motivo:motivo+(filaLabel?' · '+filaLabel:''),unidad:''};
+  hist.unshift(mov);
+  if(window._fbReady) window._fbAddHist(mov).catch(e=>console.error('addHist error',e));
+  populateProductoSelect();renderMetrics();renderTabla();limpiarForm();
+  renderResumen();
+  if(document.querySelector('.tab-content.active')?.id==='tab-filas') renderFilas();
+  await saveAll();
+  btn.disabled=false;saving.style.display='none';
+  showToast('✓ Movimiento registrado'+(filaLabel?' · '+filaLabel:''));
+}
+function limpiarForm(){
+  document.getElementById('mv-cantidad').value='';
+  document.getElementById('mv-motivo').value='';
+  document.getElementById('mv-preview').className='preview-box';
+  const mf=document.getElementById('mv-fila');
+  if(mf)mf.value='';
+  const mfi=document.getElementById('mv-fila-info');
+  if(mfi)mfi.style.display='none';
+}
+
+// ── HISTORIAL ──────────────────────────────────────────────
+function renderHistorial(){
+  const el=document.getElementById('historial-list');
+  if(!hist.length){el.innerHTML='<div class="empty"><div class="ico">📋</div>No hay movimientos registrados todavía.</div>';return;}
+  const TIPO_META={
+    entrada:{dot:'entrada',sym:'↓',cls:'pos',label:'Entrada'},
+    salida:{dot:'salida',sym:'↑',cls:'neg',label:'Salida'},
+    descontar:{dot:'salida',sym:'−',cls:'neg',label:'Descuento'},
+    ajustar:{dot:'entrada',sym:'≈',cls:'pos',label:'Ajuste'},
+    transferir:{dot:'entrada',sym:'⇄',cls:'pos',label:'Transferencia'},
+    rotura:{dot:'salida',sym:'💔',cls:'neg',label:'Rotura'},
+    eliminar:{dot:'salida',sym:'🗑',cls:'neg',label:'Eliminado de fila'},
+    agregar:{dot:'entrada',sym:'➕',cls:'pos',label:'Agregado a fila'},
+    editar_fila:{dot:'entrada',sym:'✏️',cls:'pos',label:'Editado en fila'},
+    editar_prod:{dot:'entrada',sym:'✏️',cls:'pos',label:'Producto editado'},
+    editar_mov:{dot:'entrada',sym:'✏️',cls:'pos',label:'Movimiento editado'},
+    eliminar_prod:{dot:'salida',sym:'🗑',cls:'neg',label:'Eliminado del inventario'},
+    precio:{dot:'entrada',sym:'$',cls:'pos',label:'Precio actualizado'},
+    contable:{dot:'entrada',sym:'📋',cls:'pos',label:'Datos contables'},
+  };
+  el.innerHTML='<div class="hist-list">'+hist.map((h,i)=>{
+    const m=TIPO_META[h.tipo]||{dot:'entrada',sym:'·',cls:'pos',label:h.tipo};
+    const cantFmt=h.unidad?`${h.tipo==='rotura'?'−':''}${typeof h.cantidad==='number'?fmt(h.cantidad):h.cantidad} ${h.unidad}`:(typeof h.cantidad==='number'?fmt(h.cantidad):h.cantidad);
+    const stockFmt=typeof h.anterior==='number'&&typeof h.nuevo==='number'?`${fmt(h.anterior)} → ${fmt(h.nuevo)}`:'';
+    const isEditable=['entrada','salida'].includes(h.tipo);
+    return`<div class="hist-item">
+      <div class="hist-dot ${m.dot}">${m.sym}</div>
+      <div class="hist-info">
+        <div class="hist-prod">${h.producto}</div>
+        <div class="hist-det">${h.fecha} · <span style="color:var(--text-muted);font-size:10px;background:#f0ede6;padding:1px 5px;border-radius:4px;">${m.label}</span> · ${h.rubro}${h.motivo?' · '+h.motivo:''}</div>
+      </div>
+      <div class="hist-r">
+        <div class="hist-cant ${m.cls}">${cantFmt}</div>
+        ${stockFmt?`<div class="hist-stock">${stockFmt}</div>`:''}
+      </div>
+      <div class="hist-actions">
+        ${isEditable?`<button class="btn-sm" onclick="abrirEdit(${i})">Editar</button>`:''}
+        <button class="btn-sm btn-sm-danger" onclick="eliminarMov(${i})">Borrar</button>
+      </div>
+    </div>`;
+  }).join('')+'</div>';
+}
+function abrirEdit(i){
+  editIdx=i;
+  const h=hist[i];
+  document.getElementById('edit-prod-name').textContent=h.producto+' · '+h.fecha;
+  document.getElementById('edit-tipo').value=h.tipo;
+  document.getElementById('edit-cant').value=h.cantidad;
+  document.getElementById('edit-motivo').value=h.motivo||'';
+  document.getElementById('edit-info').textContent=`Stock registrado: ${fmt(h.anterior)} → ${fmt(h.nuevo)}`;
+  document.getElementById('overlay-edit').classList.add('open');
+}
+function cerrarEdit(){document.getElementById('overlay-edit').classList.remove('open');editIdx=null;}
+async function guardarEdit(){
+  if(editIdx===null)return;
+  const h=hist[editIdx];
+  const nuevoTipo=document.getElementById('edit-tipo').value;
+  const nuevaCant=parseFloat(document.getElementById('edit-cant').value);
+  const nuevoMotivo=document.getElementById('edit-motivo').value.trim();
+  if(!nuevaCant||nuevaCant<=0){showToast('Ingresá una cantidad válida');return;}
+  const p=inv.find(x=>String(x.id)===String(h.prodId));
+  if(p){
+    if(h.tipo==='entrada')p.fisico-=h.cantidad;else p.fisico+=h.cantidad;
+    if(nuevoTipo==='entrada')p.fisico+=nuevaCant;else p.fisico-=nuevaCant;
+    h.nuevo=p.fisico;
+  }
+  const tipoAnterior=h.tipo;const cantAnterior=h.cantidad;
+  h.tipo=nuevoTipo;h.cantidad=nuevaCant;h.motivo=nuevoMotivo;
+  _registrarEnHistorial('editar_mov', h.producto, h.rubro, nuevaCant, '', null, null, `Movimiento editado: ${tipoAnterior}/${fmt(cantAnterior)} → ${nuevoTipo}/${fmt(nuevaCant)}`);
+  cerrarEdit();renderHistorial();renderTabla();renderMetrics();populateProductoSelect();
+  saveAll();
+  showToast('✓ Movimiento actualizado');
+}
+async function eliminarMov(i){
+  if(!confirm('¿Eliminar este movimiento? El stock físico se va a revertir.'))return;
+  const h=hist[i];
+  const p=inv.find(x=>String(x.id)===String(h.prodId));
+  if(p&&['entrada','salida'].includes(h.tipo)){
+    if(h.tipo==='entrada')p.fisico-=h.cantidad;else p.fisico+=h.cantidad;
+  }
+  if(h.fbId&&window._fbReady) window._fbDeleteHist(h.fbId).catch(e=>console.error('deleteHist',e));
+  hist.splice(i,1);
+  renderHistorial();renderTabla();renderMetrics();populateProductoSelect();
+  saveAll();
+  showToast('Movimiento eliminado');
+}
+async function limpiarHistorial(){
+  if(!confirm('¿Borrar todo el historial? El stock actual no se modifica.'))return;
+  if(window._fbReady){
+    try{
+      const todos=await window._fbLoadHist();
+      await Promise.all(todos.map(h=>h.fbId?window._fbDeleteHist(h.fbId):Promise.resolve()));
+    }catch(e){console.error('clearHist',e);}
+  }
+  hist=[];renderHistorial();
+  saveAll();
+  showToast('Historial limpiado');
+}
+
+// ── CONFIGURACIÓN ──────────────────────────────────────────
+function renderRubros(){
+  const el=document.getElementById('rubros-list');
+  el.innerHTML=rubros.sort().map(r=>`
+    <span class="rubro-tag" title="Click para eliminar" onclick="eliminarRubro('${r}')">${r} ×</span>
+  `).join('');
+}
+
+function populateCfgFilaSel(){
+  const sel=document.getElementById('cfg-fila-sel');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— Sin fila —</option>'+
+    filas.map(f=>`<option value="${f.id}">${f.nombre}</option>`).join('');
+}
+function populateCfgUnidadSel(){
+  const sel=document.getElementById('cfg-unidad-sel');
+  if(!sel)return;
+  const curr=sel.value;
+  sel.innerHTML=unidades.map(u=>`<option value="${u}">${u}</option>`).join('');
+  if(curr) sel.value=curr;
+}
+function populateRubroSelects(){
+  const opts=rubros.sort().map(r=>`<option value="${r}">${r}</option>`).join('');
+  document.getElementById('cfg-rubro-sel').innerHTML=opts;
+  document.getElementById('ep-rubro').innerHTML=opts;
+}
+async function agregarRubro(){
+  const input=document.getElementById('cfg-nuevo-rubro');
+  const val=input.value.trim();
+  if(!val){showToast('Ingresá el nombre del rubro');return;}
+  if(rubros.includes(val)){showToast('Ese rubro ya existe');return;}
+  rubros.push(val);
+  input.value='';
+  renderRubros();populateRubroSelects();populateFiltros();
+  saveAll();
+  showToast('✓ Rubro agregado');
+}
+async function eliminarRubro(r){
+  const enUso=inv.some(p=>p.rubro===r);
+  if(enUso){showToast('No se puede eliminar: hay productos con ese rubro');return;}
+  if(!confirm(`¿Eliminar el rubro "${r}"?`))return;
+  rubros=rubros.filter(x=>x!==r);
+  renderRubros();populateRubroSelects();populateFiltros();
+  saveAll();
+  showToast('Rubro eliminado');
+}
+// ── UNIDADES ───────────────────────────────────────────────
+function renderUnidades(){
+  if(!unidades||!unidades.length) unidades=[...BASE_UNIDADES];
+  const el=document.getElementById('unidades-list');
+  if(!el)return;
+  el.innerHTML=unidades.map(u=>`
+    <span class="rubro-tag" title="Click para eliminar" onclick="eliminarUnidad('${u}')">${u} ×</span>
+  `).join('');
+  populateUnidadSelect();
+}
+
+function populateUnidadSelect(){
+  const sel=document.getElementById('fi-unidad');
+  if(!sel)return;
+  const curr=sel.value;
+  sel.innerHTML=unidades.map(u=>`<option value="${u}">${u}</option>`).join('');
+  if(curr&&unidades.includes(curr)) sel.value=curr;
+}
+
+async function agregarUnidad(){
+  const input=document.getElementById('cfg-nueva-unidad');
+  const val=input.value.trim();
+  if(!val){showToast('Ingresá el nombre de la unidad');return;}
+  if(unidades.includes(val)){showToast('Esa unidad ya existe');return;}
+  unidades.push(val);
+  input.value='';
+  renderUnidades();
+  await saveAll();
+  showToast('✓ Unidad agregada');
+}
+
+async function eliminarUnidad(u){
+  if(BASE_UNIDADES.includes(u)){showToast('No se puede eliminar una unidad base');return;}
+  if(!confirm(`¿Eliminar la unidad "${u}"?`))return;
+  unidades=unidades.filter(x=>x!==u);
+  renderUnidades();
+  await saveAll();
+  showToast('Unidad eliminada');
+}
+
+async function agregarProducto(){
+  const nombre=document.getElementById('cfg-nombre').value.trim();
+  const rubro=document.getElementById('cfg-rubro-sel').value;
+  const fisico=parseFloat(document.getElementById('cfg-fisico').value)||0;
+  const unidad=document.getElementById('cfg-unidad-sel')?.value||'L';
+  const precio=parseFloat(document.getElementById('cfg-precio').value)||0;
+  const idInput=document.getElementById('cfg-id').value.trim();
+  const filaId=document.getElementById('cfg-fila-sel')?.value||'';
+  const presentacion=document.getElementById('cfg-presentacion')?.value.trim()||'—';
+  const cantidad=document.getElementById('cfg-cantidad')?.value.trim()||'—';
+  const venc=document.getElementById('cfg-venc')?.value||'';
+  if(!nombre){showToast('Ingresá el nombre del producto');return;}
+  if(!rubro){showToast('Seleccioná un rubro');return;}
+  const id=idInput||'p'+Date.now();
+  if(inv.find(x=>String(x.id)===String(id))){showToast('Ya existe un producto con ese ID');return;}
+  inv.push({id,nombre,rubro,fisico,crpf:0,cfpr:0,vepf:0,vfpe:0,precio,precioHist:[]});
+  // Si se eligió una fila, agregar también ahí
+  if(filaId){
+    const fila=filas.find(f=>f.id===filaId);
+    if(fila){
+      fila.items.push({
+        prod:nombre, tipo:'liquido', presentacion, cantidad,
+        total:fisico>0?fisico:null, unidad, venc, estado:'ok', notas:''
+      });
+    }
+  }
+  // Limpiar form
+  document.getElementById('cfg-nombre').value='';
+  document.getElementById('cfg-fisico').value='';
+  document.getElementById('cfg-precio').value='';
+  document.getElementById('cfg-id').value='';
+  document.getElementById('cfg-presentacion').value='';
+  document.getElementById('cfg-cantidad').value='';
+  document.getElementById('cfg-venc').value='';
+  if(document.getElementById('cfg-fila-sel')) document.getElementById('cfg-fila-sel').value='';
+  renderConfigList();populateProductoSelect();renderMetrics();renderTabla();populateFiltros();renderResumen();
+  if(filaId) renderFilas();
+  saveAll();
+  showToast('✓ Producto agregado'+(filaId?' y agregado a la fila':''));
+}
+function renderConfigList(){
+  const b=document.getElementById('cfg-buscar').value.toLowerCase();
+  const data=inv.filter(p=>!b||p.nombre.toLowerCase().includes(b)).sort((a,b2)=>a.nombre.localeCompare(b2.nombre));
+  document.getElementById('cfg-prod-count').textContent='('+inv.length+' en total)';
+  const el=document.getElementById('cfg-prod-list');
+  if(!data.length){el.innerHTML='<div class="empty" style="padding:1.5rem;">No se encontraron productos</div>';return;}
+  el.innerHTML=data.map(p=>`
+    <div class="prod-list-item">
+      <div class="pli-name" title="${p.nombre}">${p.nombre}</div>
+      <div class="pli-rubro">${p.rubro}</div>
+      <div class="pli-stock" style="color:${est(p.fisico,p.minimo)==='danger'?'var(--danger)':est(p.fisico,p.minimo)==='warn'?'var(--warn)':'var(--text-muted)'};" title="Mínimo: ${p.minimo||20}">${fmt(p.fisico)} <span style="font-size:10px;color:var(--text-muted);">(mín: ${p.minimo||20})</span></div>
+      <div style="display:flex;gap:5px;margin-left:8px;">
+        <button class="btn-sm btn-sm-accent" onclick="abrirEditProd('${p.id}')">Editar</button>
+        <button class="btn-sm btn-sm-danger" onclick="eliminarProducto('${p.id}')">Eliminar</button>
+      </div>
+    </div>
+  `).join('');
+}
+function abrirEditProd(id){
+  const p=inv.find(x=>String(x.id)===String(id));
+  if(!p)return;
+  editProdId=String(id);
+  document.getElementById('edit-prod-sub').textContent='ID: '+p.id;
+  document.getElementById('ep-nombre').value=p.nombre;
+  populateRubroSelects();
+  document.getElementById('ep-rubro').value=p.rubro;
+  document.getElementById('ep-minimo').value=p.minimo!=null?p.minimo:20;
+  document.getElementById('overlay-edit-prod').classList.add('open');
+}
+function cerrarEditProd(){document.getElementById('overlay-edit-prod').classList.remove('open');editProdId=null;}
+async function guardarEditProd(){
+  const p=inv.find(x=>String(x.id)===String(editProdId));
+  if(!p)return;
+  const nuevoNombre=document.getElementById('ep-nombre').value.trim();
+  const nuevoRubro=document.getElementById('ep-rubro').value;
+  const nuevoMinimo=parseFloat(document.getElementById('ep-minimo').value)||20;
+  if(!nuevoNombre){showToast('El nombre no puede estar vacío');return;}
+  // actualizar referencias en historial
+  const nombreAnterior=p.nombre;
+  hist.forEach(h=>{if(String(h.prodId)===String(p.id))h.producto=nuevoNombre;});
+  p.nombre=nuevoNombre;p.rubro=nuevoRubro;p.minimo=nuevoMinimo;
+  _registrarEnHistorial('editar_prod', nuevoNombre, nuevoRubro, '—', '', null, null, nombreAnterior!==nuevoNombre?`Renombrado: "${nombreAnterior}" → "${nuevoNombre}"`:'Rubro/datos actualizados');
+  cerrarEditProd();renderConfigList();renderTabla();populateProductoSelect();populateFiltros();renderHistorial();
+  saveAll();
+  showToast('✓ Producto actualizado');
+}
+async function eliminarProducto(id){
+  const p=inv.find(x=>String(x.id)===String(id));
+  if(!p)return;
+  if(!confirm(`¿Eliminar "${p.nombre}"? Se eliminará del inventario pero el historial se va a conservar.`))return;
+  _registrarEnHistorial('eliminar_prod', p.nombre, p.rubro, p.fisico, 'L', p.fisico, 0, 'Producto eliminado del inventario');
+  inv=inv.filter(x=>String(x.id)!==String(id));
+  renderConfigList();renderTabla();renderMetrics();populateProductoSelect();populateFiltros();renderHistorial();
+  saveAll();
+  showToast('Producto eliminado');
+}
+
+// ── EXPORT ─────────────────────────────────────────────────
+function exportarCSV(){
+  const h=['ID','Producto','Rubro','Físico','Contable','C.Rec.PF','C.Fact.PR','V.Ent.PF','V.Fact.PE','Diferencia','Precio Venta','Estado'];
+  const rows=inv.map(p=>[p.id,p.nombre,p.rubro,p.fisico,cont(p),p.crpf,p.cfpr,p.vepf,p.vfpe,cont(p)-p.fisico,p.precio||0,estLbl(p.fisico)]);
+  const csv=[h,...rows].map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download='inventario_agrocamba.csv';a.click();
+  showToast('CSV exportado');
+}
+
+// ── UI ─────────────────────────────────────────────────────
+
+// ── VENCIMIENTOS MASIVOS ───────────────────────────────────
+function abrirVencBulk(){
+  renderVencBulk();
+  document.getElementById('overlay-venc-bulk').classList.add('open');
+}
+function cerrarVencBulk(){
+  document.getElementById('overlay-venc-bulk').classList.remove('open');
+}
+
+function renderVencBulk(){
+  const tbody=document.getElementById('venc-bulk-tbody');
+  if(!tbody)return;
+  let sinFecha=0, porVencer=0, vencido=0, total=0;
+  let rows='';
+  filas.forEach(fila=>{
+    if(!fila.items||!fila.items.length)return;
+    rows+=`<tr><td colspan="5" class="venc-bulk-fila">📦 ${fila.nombre} · ${fila.items.length} productos</td></tr>`;
+    fila.items.forEach((item,idx)=>{
+      const vi=vencInfo(item.venc);
+      total++;
+      let estadoHtml='';
+      if(!item.venc){
+        estadoHtml='<span style="color:var(--text-muted);font-size:12px;">Sin fecha</span>';
+        sinFecha++;
+      } else {
+        const txt=vi.dias<0?'Vencido':vi.dias===0?'Vence hoy':vi.dias<=30?`${vi.dias} días`:new Date(item.venc+'T00:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'2-digit'});
+        estadoHtml=`<span class="venc-chip-inline ${vi.cls}">${txt}</span>`;
+        if(vi.dias<0)vencido++;
+        else if(vi.dias<=60)porVencer++;
+      }
+      rows+=`<tr>
+        <td style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${item.prod}">${item.prod}</td>
+        <td style="color:var(--text-muted);font-size:12px;">${fila.nombre}</td>
+        <td style="text-align:right;font-family:var(--mono);font-size:12px;">${item.total!=null?fmt(item.total)+' '+item.unidad:'—'}</td>
+        <td><input type="date" data-fila="${fila.id}" data-idx="${idx}" value="${item.venc||''}" onchange="previewVencChange(this)"></td>
+        <td id="venc-estado-${fila.id}-${idx}">${estadoHtml}</td>
+      </tr>`;
+    });
+  });
+  if(!rows){tbody.innerHTML='<tr><td colspan="5" class="empty">No hay productos en las filas del galpón.</td></tr>';return;}
+  tbody.innerHTML=rows;
+  const res=document.getElementById('venc-bulk-resumen');
+  if(res){
+    const parts=[];
+    if(sinFecha>0)parts.push(`⚪ ${sinFecha} sin fecha`);
+    if(vencido>0)parts.push(`🔴 ${vencido} vencidos`);
+    if(porVencer>0)parts.push(`🟡 ${porVencer} próximos`);
+    const ok=total-sinFecha-vencido-porVencer;
+    if(ok>0)parts.push(`🟢 ${ok} OK`);
+    res.textContent=parts.join('  ');
+  }
+}
+
+function previewVencChange(input){
+  const filaId=input.dataset.fila;
+  const idx=parseInt(input.dataset.idx);
+  const val=input.value;
+  const estadoEl=document.getElementById(`venc-estado-${filaId}-${idx}`);
+  if(!estadoEl)return;
+  if(!val){estadoEl.innerHTML='<span style="color:var(--text-muted);font-size:12px;">Sin fecha</span>';return;}
+  const vi=vencInfo(val);
+  const txt=vi.dias<0?'Vencido':vi.dias===0?'Vence hoy':vi.dias<=30?`${vi.dias} días`:new Date(val+'T00:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'2-digit'});
+  estadoEl.innerHTML=`<span class="venc-chip-inline ${vi.cls}">${txt}</span>`;
+  // Update resumen
+  renderVencBulkResumen();
+}
+
+function renderVencBulkResumen(){
+  const inputs=document.querySelectorAll('#venc-bulk-tbody input[type=date]');
+  let sinFecha=0,vencido=0,porVencer=0,ok=0;
+  inputs.forEach(inp=>{
+    if(!inp.value){sinFecha++;return;}
+    const vi=vencInfo(inp.value);
+    if(vi.dias<0)vencido++;
+    else if(vi.dias<=60)porVencer++;
+    else ok++;
+  });
+  const res=document.getElementById('venc-bulk-resumen');
+  if(!res)return;
+  const parts=[];
+  if(sinFecha>0)parts.push(`⚪ ${sinFecha} sin fecha`);
+  if(vencido>0)parts.push(`🔴 ${vencido} vencidos`);
+  if(porVencer>0)parts.push(`🟡 ${porVencer} próximos`);
+  if(ok>0)parts.push(`🟢 ${ok} OK`);
+  res.textContent=parts.join('  ');
+}
+
+async function guardarVencimientos(){
+  const inputs=document.querySelectorAll('#venc-bulk-tbody input[type=date]');
+  let cambios=0;
+  inputs.forEach(input=>{
+    const filaId=input.dataset.fila;
+    const idx=parseInt(input.dataset.idx);
+    const fila=filas.find(f=>f.id===filaId);
+    if(!fila||!fila.items[idx])return;
+    const viejo=fila.items[idx].venc||'';
+    const nuevo=input.value||'';
+    if(viejo!==nuevo){fila.items[idx].venc=nuevo;cambios++;}
+  });
+  if(cambios===0){showToast('No hay cambios para guardar');return;}
+  await saveAll();
+  cerrarVencBulk();
+  renderFilas();
+  showToast(`✓ ${cambios} fecha${cambios>1?'s':''} guardada${cambios>1?'s':''}`);
+}
+
+// ── STOCK POR PRODUCTO ─────────────────────────────────────
+function calcResumen(){
+  // Agrupa todos los items de todas las filas por nombre+unidad
+  const mapa = {};
+  filas.forEach(fila=>{
+    fila.items.forEach(item=>{
+      if(!item.prod||item.prod==='—') return;
+      const key = item.prod.trim().toUpperCase()+'||'+item.unidad;
+      if(!mapa[key]){
+        mapa[key]={
+          prod: item.prod.trim(),
+          tipo: item.tipo||'otro',
+          unidad: item.unidad||'—',
+          total: 0,
+          filas: [],
+          vencimientos: [],
+        };
+      }
+      const entry = mapa[key];
+      if(item.total!=null) entry.total = parseFloat((entry.total + item.total).toFixed(2));
+      if(!entry.filas.includes(fila.nombre)) entry.filas.push(fila.nombre);
+      if(item.venc) entry.vencimientos.push({fecha:item.venc, fila:fila.nombre, total:item.total});
+    });
+  });
+  // Sort vencimientos por fecha asc
+  Object.values(mapa).forEach(e=>{
+    e.vencimientos.sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  });
+  return Object.values(mapa).sort((a,b)=>a.prod.localeCompare(b.prod));
+}
+
+function renderResumenMetrics(){
+  // Lightweight update — only refresh if resumen tab is active
+  if(document.getElementById('tab-resumen')?.classList.contains('active')) renderResumen();
+}
+
+function renderResumen(){
+  const buscar = (document.getElementById('res-buscar')||{value:''}).value.toLowerCase();
+  const filtroUd = (document.getElementById('res-unidad')||{value:''}).value;
+  const data = calcResumen();
+
+  // Populate unidad filter
+  const udSel = document.getElementById('res-unidad');
+  if(udSel){
+    const currUd = udSel.value;
+    const uds = [...new Set(data.map(d=>d.unidad))].sort();
+    udSel.innerHTML = '<option value="">Todas las unidades</option>' +
+      uds.map(u=>`<option value="${u}">${u}</option>`).join('');
+    udSel.value = currUd;
+  }
+
+  // Metrics
+  const metricsEl = document.getElementById('resumen-metrics');
+  if(metricsEl){
+    const totalProds = data.length;
+    const conVenc = data.filter(d=>d.vencimientos.length>0).length;
+    const sinVenc = data.filter(d=>d.vencimientos.length===0).length;
+    const porVencer = data.filter(d=>d.vencimientos.some(v=>{const vi=vencInfo(v.fecha);return vi.dias!=null&&vi.dias<=30;})).length;
+    metricsEl.innerHTML = `
+      <div class="mc"><div class="mc-lbl">Total productos</div><div class="mc-val">${totalProds}</div></div>
+      <div class="mc"><div class="mc-lbl">Con fecha cargada</div><div class="mc-val ok">${conVenc}</div></div>
+      <div class="mc"><div class="mc-lbl">Sin fecha</div><div class="mc-val warn">${sinVenc}</div></div>
+      <div class="mc"><div class="mc-lbl">Vencen en ≤30 días</div><div class="mc-val danger">${porVencer}</div></div>`;
+  }
+
+  // Filter
+  const filtered = data.filter(d=>{
+    if(buscar && !d.prod.toLowerCase().includes(buscar)) return false;
+    if(filtroUd && d.unidad !== filtroUd) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('res-tbody');
+  if(!filtered.length){
+    tbody.innerHTML = '<tr><td colspan="7" class="empty"><div class="ico">📦</div>No se encontraron productos</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((d,i)=>{
+    const ico = tipoIco(d.tipo);
+    // Próximo vencimiento
+    let vencHtml = '<span style="color:var(--text-muted);font-size:11px;">Sin fecha</span>';
+    if(d.vencimientos.length>0){
+      const v = d.vencimientos[0];
+      const vi = vencInfo(v.fecha);
+      const txt = vi.dias<0?'Vencido':vi.dias===0?'Hoy':vi.dias<=30?`${vi.dias} días`
+        :new Date(v.fecha+'T00:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'2-digit'});
+      vencHtml = `<span class="venc-chip ${vi.cls}">${txt}</span>
+        <span style="font-size:10px;color:var(--text-muted);display:block;margin-top:2px;">${v.fila}</span>`;
+    }
+    // Estado semaforo
+    const tieneVencProx = d.vencimientos.some(v=>{const vi=vencInfo(v.fecha);return vi.dias!=null&&vi.dias<=30;});
+    const semCls = tieneVencProx?'sem-diff': (d.vencimientos.length===0?'sem-pend':'sem-ok');
+    // Filas badge
+    const filasBadge = d.filas.map(f=>`<span style="font-size:10px;background:#f0ede6;padding:1px 5px;border-radius:4px;margin-right:2px;">${f}</span>`).join('');
+    const alt = i%2===0;
+    return `<tr style="${alt?'background:var(--bg-card)':'background:#fafaf8'}">
+      <td style="font-weight:500;">
+        <span class="semaforo ${semCls}"></span>${ico} ${d.prod}
+      </td>
+      <td style="text-align:center;font-size:13px;">${ico}</td>
+      <td style="text-align:right;font-family:var(--mono);font-size:14px;font-weight:600;">${fmt(d.total)}</td>
+      <td style="text-align:center;font-size:12px;color:var(--text-muted);">${d.unidad}</td>
+      <td style="font-size:11px;">${filasBadge}</td>
+      <td>${vencHtml}</td>
+      <td style="text-align:center;">
+        ${d.vencimientos.length>1?`<span style="font-size:10px;color:var(--text-muted);">${d.vencimientos.length} lotes</span>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function exportarResumenCSV(){
+  const data = calcResumen();
+  const h = ['Producto','Tipo','Total','Unidad','Filas','Próximo vencimiento','Fila vencimiento'];
+  const rows = data.map(d=>{
+    const v = d.vencimientos[0];
+    return [d.prod, d.tipo, d.total, d.unidad, d.filas.join(' / '),
+      v?v.fecha:'', v?v.fila:''];
+  });
+  const csv = [h,...rows].map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download = 'stock_por_producto.csv';
+  a.click();
+  showToast('CSV exportado');
+}
+function showTab(tab){
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(btn=>btn.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.querySelectorAll('.nav-btn')[['resumen','movimiento','historial','filas','config'].indexOf(tab)].classList.add('active');
+  if(tab==='historial')renderHistorial();
+  if(tab==='config'){renderRubros();renderUnidades();renderConfigList();populateRubroSelects();populateCfgFilaSel();populateCfgUnidadSel();}
+  if(tab==='filas')renderFilas();
+  if(tab==='resumen')renderResumen();
+  if(tab==='movimiento'){populateMvFilaSelect();renderResumenMetrics();}
+}
+
+// ── FILAS DEL GALPÓN ───────────────────────────────────────
+// filas: [{id, nombre, color, items:[{prod, presentacion, cantidad, total, unidad, notas}]}]
+const FILA_COLORS=['#2d6a4f','#b45309','#9b1c1c','#1a5276','#4a235a','#7e4000','#0c5460','#155724','#7d6608','#512b2b'];
+
+const FILAS_BASE=[
+  {id:'f1',nombre:'Fila 1',color:'#2d6a4f',items:[
+    {prod:'Vibrance Gold X200L',presentacion:'Bidón 200L',cantidad:'1 bidón',total:200,unidad:'L',notas:''},
+    {prod:'Barova Gold',presentacion:'Caja 4x5L',cantidad:'2 cajas',total:40,unidad:'L',notas:''},
+    {prod:'Voleris',presentacion:'Bidón 20L',cantidad:'32 bidones',total:640,unidad:'L',notas:'Syngenta'},
+    {prod:'Acuron Pack',presentacion:'Caja 4x5L',cantidad:'20 cajas',total:400,unidad:'L',notas:''},
+    {prod:'Miravis Duo',presentacion:'Caja 4x5L',cantidad:'45 cajas',total:900,unidad:'L',notas:''},
+    {prod:'Festio Triple Pack',presentacion:'Caja 4x4,5L',cantidad:'6 cajas',total:108,unidad:'L',notas:''},
+    {prod:'Vibrance Gold 4x5L',presentacion:'Caja 4x5L + bidones 5L',cantidad:'31 cajas + 2 bidones',total:630,unidad:'L',notas:''},
+    {prod:'Engeo S',presentacion:'Caja 4x5L + bidón 5L',cantidad:'15 cajas + 1 bidón',total:305,unidad:'L',notas:''},
+    {prod:'Zeek',presentacion:'Caja 4x5L',cantidad:'4 cajas + 2 bidones',total:90,unidad:'L',notas:''},
+    {prod:'Flontus',presentacion:'Bidón 6,5L',cantidad:'1 bidón',total:6.5,unidad:'L',notas:''},
+    {prod:'Banvel',presentacion:'Bidón 5L',cantidad:'1 bidón',total:5,unidad:'L',notas:''},
+    {prod:'Cruiser Pack HC',presentacion:'Cajas mix',cantidad:'13+1 cajas',total:null,unidad:'u',notas:'Pendiente calcular litros'},
+    {prod:'Amistar Xtra',presentacion:'Bidón 5L',cantidad:'7 bidones',total:35,unidad:'L',notas:''},
+    {prod:'Mazen Ace 4x5L',presentacion:'Bidón 5L',cantidad:'8 bidones',total:40,unidad:'L',notas:''},
+    {prod:'Chikara',presentacion:'Bidón 5L',cantidad:'2 bidones',total:10,unidad:'L',notas:''},
+    {prod:'Gesaprim 90 WDGT',presentacion:'Bolsa 10kg',cantidad:'7 bolsas',total:70,unidad:'kg',notas:''},
+  ]},
+  {id:'f2',nombre:'Fila 2',color:'#b45309',items:[
+    {prod:'Glifosato Full II Sigma',presentacion:'Bidón 20L',cantidad:'48 bidones',total:960,unidad:'L',notas:''},
+    {prod:'Sulfosato Touchdown Max',presentacion:'Pallet',cantidad:'2 pallets',total:null,unidad:'L',notas:'Verificar unidades por pallet'},
+    {prod:'Vibrance Integral 4x5L',presentacion:'Caja 4x5L',cantidad:'2 cajas',total:40,unidad:'L',notas:''},
+    {prod:'Festio Triple Pack',presentacion:'Caja 4x4,5L',cantidad:'19 cajas',total:342,unidad:'L',notas:''},
+    {prod:'Karate Zeon',presentacion:'Bidón 1L',cantidad:'5 bidones',total:5,unidad:'L',notas:''},
+    {prod:'Virantra 4x5L',presentacion:'Caja 4x5L',cantidad:'6 cajas',total:120,unidad:'L',notas:''},
+    {prod:'Stimwise Verde',presentacion:'Bidón 20L',cantidad:'11 bidones',total:220,unidad:'L',notas:'7 orig. + 4 de fila 4'},
+    {prod:'Stimwise Boro (blanco)',presentacion:'Bidón 20L',cantidad:'13 bidones',total:260,unidad:'L',notas:''},
+    {prod:'Bolsas maíz',presentacion:'Bolsa',cantidad:'2 bolsas',total:2,unidad:'u',notas:'Verificar kg/bolsa'},
+    {prod:'Metsulfuron',presentacion:'Sobre 100gr',cantidad:'4 sobres',total:400,unidad:'gr',notas:''},
+    {prod:'Dagger 60 WG',presentacion:'Sobre 100gr',cantidad:'1 sobre',total:100,unidad:'gr',notas:''},
+    {prod:'Tribu 48 SG',presentacion:'Bidón 20L',cantidad:'4 bidones',total:80,unidad:'L',notas:''},
+    {prod:'Sunset 48 SC',presentacion:'Bidón 20L',cantidad:'2 bidones',total:40,unidad:'L',notas:''},
+    {prod:'Tekove',presentacion:'Bidón 20L',cantidad:'20 bidones',total:400,unidad:'L',notas:''},
+  ]},
+  {id:'f3',nombre:'Fila 3',color:'#1a5276',items:[
+    {prod:'Glifosato',presentacion:'Pallet 48x20L',cantidad:'3 pallets',total:2880,unidad:'L',notas:''},
+    {prod:'Voleris',presentacion:'Bidón 20L',cantidad:'65 bidones',total:1300,unidad:'L',notas:''},
+    {prod:'Sulfato',presentacion:'Bidón 20L',cantidad:'26 bidones',total:520,unidad:'L',notas:''},
+    {prod:'Hydrop 10',presentacion:'Caja 12x1L / Caja 6x1L',cantidad:'9 cajas 12x1 + 1 caja 6x1',total:114,unidad:'L',notas:''},
+    {prod:'Hydrop Oil',presentacion:'Bidón 10L',cantidad:'4 bidones',total:40,unidad:'L',notas:''},
+    {prod:'Hydrop Mix',presentacion:'Bidón 10L',cantidad:'6 bidones',total:60,unidad:'L',notas:''},
+    {prod:'Hydrop 360',presentacion:'Bidón 10L',cantidad:'5 bidones',total:50,unidad:'L',notas:''},
+    {prod:'Moddus',presentacion:'Caja 4x5L / Caja 3x5L',cantidad:'9 cajas 4x5 + 1 caja 3x5',total:195,unidad:'L',notas:''},
+  ]},
+  {id:'f4',nombre:'Fila 4',color:'#9b1c1c',items:[
+    {prod:'Glifosato',presentacion:'Pallet 48x20L',cantidad:'1 pallet',total:960,unidad:'L',notas:''},
+    {prod:'Dual Gold',presentacion:'Pallet 600L',cantidad:'2 pallets',total:1200,unidad:'L',notas:''},
+    {prod:'Banvel',presentacion:'Pallet + cajas 4x5L',cantidad:'1 pallet + 10 cajas',total:200,unidad:'L',notas:'Verificar unidades pallet'},
+    {prod:'Enelan',presentacion:'Pallet caja 4x5L',cantidad:'1 pallet completo',total:null,unidad:'L',notas:'Verificar unidades pallet'},
+    {prod:'Gesaprim 90 WDGT',presentacion:'Bolsa 10kg',cantidad:'4 pallets × 55 bolsas',total:2200,unidad:'kg',notas:''},
+    {prod:'Miravis Triple Pack',presentacion:'Caja 4x4,5L',cantidad:'7 cajas + 2 bidones',total:135,unidad:'L',notas:''},
+    {prod:'Karate Zeon',presentacion:'Caja 12x1L',cantidad:'5 cajas',total:60,unidad:'L',notas:''},
+    {prod:'Vesdua',presentacion:'Caja 4x5L',cantidad:'7 cajas',total:140,unidad:'L',notas:''},
+    {prod:'Clearsol DF',presentacion:'—',cantidad:'—',total:null,unidad:'—',notas:'Pendiente — dato faltante'},
+  ]},
+  {id:'f5',nombre:'Fila 5',color:'#4a235a',items:[
+    {prod:'Sulfosato Touchdown (Sulfato)',presentacion:'Pallet 32x20L',cantidad:'7 pallets + 1 de 28x20L',total:4960,unidad:'L',notas:''},
+    {prod:'Voleris',presentacion:'Bidón 20L',cantidad:'80 bidones',total:1600,unidad:'L',notas:''},
+    {prod:'Peak Pack L',presentacion:'Pallet cajas',cantidad:'39 + 34 cajas + 1 caja abierta',total:73,unidad:'cajas',notas:'Caja abierta: 2x1L + 4x100gr'},
+  ]},
+  {id:'f6',nombre:'Fila 6',color:'#7e4000',items:[
+    {prod:'Wuxal Combi MN',presentacion:'Bidón 10L',cantidad:'18 bidones',total:180,unidad:'L',notas:''},
+    {prod:'Amistar Xtra',presentacion:'Caja 4x5L',cantidad:'13 cajas',total:260,unidad:'L',notas:''},
+    {prod:'Semillas',presentacion:'—',cantidad:'—',total:null,unidad:'—',notas:'Pendiente — se cuenta al final'},
+  ]},
+  {id:'f7',nombre:'Fila 7',color:'#0c5460',items:[
+    {prod:'Semillas',presentacion:'—',cantidad:'—',total:null,unidad:'—',notas:'Pendiente — se cuenta al final'},
+  ]},
+  {id:'f8',nombre:'Fila 8',color:'#155724',items:[
+    {prod:'Glifosato',presentacion:'Pallet 48x20L',cantidad:'2 pallets',total:1920,unidad:'L',notas:''},
+    {prod:'Goten (Atrazina)',presentacion:'Bolsa 10kg',cantidad:'2 pallets × 55 + 3 bolsas',total:1130,unidad:'kg',notas:''},
+    {prod:'Bioultimate',presentacion:'Bidón 20L',cantidad:'14 bidones',total:280,unidad:'L',notas:''},
+  ]},
+  {id:'f9',nombre:'Fila 9',color:'#512b2b',items:[
+    {prod:'Acuron Pack',presentacion:'Caja 4x5L',cantidad:'30 cajas',total:600,unidad:'L',notas:''},
+    {prod:'Voleris',presentacion:'Bidón 20L',cantidad:'32 bidones',total:640,unidad:'L',notas:''},
+    {prod:'Wuxal Combi MN',presentacion:'Bidón 10L',cantidad:'50 bidones',total:500,unidad:'L',notas:''},
+    {prod:'Dual Gold',presentacion:'Caja 4x5L',cantidad:'16 cajas',total:320,unidad:'L',notas:''},
+    {prod:'Flontus',presentacion:'Bidón 6,5L',cantidad:'1 bidón',total:6.5,unidad:'L',notas:''},
+    {prod:'Karate Zeon',presentacion:'Caja 12x1L / Caja 8x1L',cantidad:'6 cajas + 1 caja 8x1',total:80,unidad:'L',notas:''},
+    {prod:'Virantra 4x5L',presentacion:'Caja 4x5L',cantidad:'2 cajas',total:40,unidad:'L',notas:''},
+    {prod:'Megafol',presentacion:'Bidón 20L',cantidad:'30 bidones',total:600,unidad:'L',notas:''},
+    {prod:'Hydrop Oil',presentacion:'Bidón 10L',cantidad:'75 bidones',total:750,unidad:'L',notas:''},
+  ]},
+  {id:'f10',nombre:'Fila 10',color:'#7d6608',items:[
+    {prod:'Stimwise Verde',presentacion:'Bidón 20L',cantidad:'32 bidones',total:640,unidad:'L',notas:''},
+    {prod:'Curyom FitUV',presentacion:'Caja 10x1kg',cantidad:'2 cajas',total:20,unidad:'kg',notas:''},
+    {prod:'Nuvoxl',presentacion:'Bidón 20L',cantidad:'10 bidones',total:200,unidad:'L',notas:''},
+    {prod:'Virantra 4x5L',presentacion:'Cajas 4x5L + caja 2x5L',cantidad:'3 cajas + 1 caja 2x5',total:70,unidad:'L',notas:''},
+    {prod:'Axial Plus',presentacion:'Bidón 5L',cantidad:'3 bidones',total:15,unidad:'L',notas:''},
+    {prod:'Engeo S',presentacion:'Bidón 5L',cantidad:'2 bidones',total:10,unidad:'L',notas:''},
+    {prod:'Acuron Uno',presentacion:'Bidón 5L',cantidad:'1 bidón (roto)',total:null,unidad:'L',notas:'Roto — verificar si se descarta'},
+    {prod:'Cleto 24% EC',presentacion:'Bidón 20L',cantidad:'1 bidón',total:20,unidad:'L',notas:''},
+    {prod:'Cletodim Sigma',presentacion:'Bidón 20L',cantidad:'23 bidones',total:460,unidad:'L',notas:''},
+    {prod:'Traspect M 20L',presentacion:'Bidón 20L',cantidad:'56 bidones',total:1120,unidad:'L',notas:''},
+  ]},
+  {id:'f11',nombre:'Fila 11',color:'#2d6a4f',items:[
+    {prod:'Ampligo',presentacion:'Caja 12x1L + bidones 1L',cantidad:'2 cajas + 3 bidones',total:27,unidad:'L',notas:''},
+    {prod:'Enelan',presentacion:'Caja 4x5L + bidones 5L',cantidad:'3 cajas + 2 bidones',total:70,unidad:'L',notas:''},
+    {prod:'Megafol',presentacion:'Pallet 30x20L + bidones',cantidad:'3 pallets + 26 bidones',total:2320,unidad:'L',notas:''},
+    {prod:'Diflufenican 50 Sigma',presentacion:'Caja 4x5L + caja 3x5L',cantidad:'5 cajas + 1 caja 3x5',total:115,unidad:'L',notas:''},
+    {prod:'Acuron Uno',presentacion:'Bidón 5L',cantidad:'1 bidón',total:5,unidad:'L',notas:''},
+    {prod:'Reglone',presentacion:'Bidón 5L',cantidad:'2 bidones',total:10,unidad:'L',notas:''},
+    {prod:'Dicamba Sigma',presentacion:'Bidón 10L',cantidad:'38 bidones',total:380,unidad:'L',notas:''},
+    {prod:'Tuken SC',presentacion:'Bidón 5L',cantidad:'1 bidón',total:5,unidad:'L',notas:''},
+  ]},
+  {id:'f12',nombre:'Fila 12',color:'#b45309',items:[
+    {prod:'Sulfosato Touchdown Max',presentacion:'Pallet cajas 10kg',cantidad:'3 pallets completos',total:null,unidad:'kg',notas:'Cajas por pallet sin confirmar'},
+    {prod:'Glifosato (Sulfato)',presentacion:'Pallet 32x20L',cantidad:'2 pallets',total:1280,unidad:'L',notas:''},
+    {prod:'Stimwise Verde',presentacion:'Bidón 20L',cantidad:'3 bidones',total:60,unidad:'L',notas:''},
+    {prod:'Planter',presentacion:'Bidón 20L',cantidad:'8 bidones',total:160,unidad:'L',notas:''},
+    {prod:'Zarovia',presentacion:'Caja 4x5L',cantidad:'4 cajas',total:80,unidad:'L',notas:''},
+    {prod:'Sulfosato Touchdown Max',presentacion:'Bidón 10kg',cantidad:'23 bidones sueltos',total:230,unidad:'kg',notas:'Aparte de los 3 pallets'},
+  ]},
+];
+
+
+let filas=[];
+
+function loadFilas(){
+  // filas se carga desde Firebase en fetchData — esto es solo fallback
+  if(!filas||!filas.length) filas=JSON.parse(JSON.stringify(FILAS_BASE));
+}
+function saveFilas(){saveAll();}
+
+function tipoIco(tipo){
+  return{liquido:'🧪',caja:'📦',quimico:'🔬',semilla:'🌱',otro:'📋'}[tipo]||'📋';
+}
+function vencInfo(venc){
+  if(!venc)return{label:'—',cls:'none',dias:null};
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  const v=new Date(venc+'T00:00:00');
+  const dias=Math.round((v-hoy)/(1000*60*60*24));
+  if(dias<0)return{label:'Vencido',cls:'danger',dias};
+  if(dias===0)return{label:'Hoy!',cls:'danger',dias};
+  if(dias<=30)return{label:`${dias}d`,cls:'danger',dias};
+  if(dias<=60)return{label:`${dias}d`,cls:'warn',dias};
+  return{label:v.toLocaleDateString('es-AR',{month:'short',year:'2-digit'}),cls:'ok',dias};
+}
+function semClass(item){
+  if(item.estado==='diff')return'sem-diff';
+  const vi=vencInfo(item.venc);
+  if(vi.dias!==null&&vi.dias<=30)return'sem-diff';
+  if(item.estado==='pend'||!!(item.notas&&(item.notas.toLowerCase().includes('pendiente')||item.notas.toLowerCase().includes('verificar')||item.notas.toLowerCase().includes('roto'))))return'sem-pend';
+  return'sem-ok';
+}
+
+function renderFilas(){
+  const container=document.getElementById('filas-container');
+  const buscar=(document.getElementById('filas-buscar')||{value:''}).value.toLowerCase();
+  const filtro=(document.getElementById('filas-filtro')||{value:''}).value;
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+
+  // Vencimiento banner
+  const porVencer=[];
+  filas.forEach(f=>f.items.forEach(item=>{
+    const vi=vencInfo(item.venc);
+    if(vi.dias!==null&&vi.dias<=30)porVencer.push({fila:f.nombre,prod:item.prod,dias:vi.dias,label:vi.label});
+  }));
+  const banner=document.getElementById('venc-banner');
+  if(porVencer.length){
+    const txt=porVencer.slice(0,4).map(x=>`<strong>${x.prod}</strong> (${x.fila}) — ${x.dias<0?'VENCIDO':x.dias===0?'vence HOY':'vence en '+x.dias+' días'}`).join(' &nbsp;·&nbsp; ');
+    banner.innerHTML='⚠ Vencimientos próximos: '+txt+(porVencer.length>4?` y ${porVencer.length-4} más`:'');
+    banner.style.display='block';
+  } else {
+    banner.style.display='none';
+  }
+
+  if(!filas.length){
+    container.innerHTML='<div class="empty"><div class="ico">🏗</div>No hay filas registradas. Creá la primera con "Nueva fila".</div>';
+    return;
+  }
+
+  let rendered=0;
+  const html=filas.map((fila,fi)=>{
+    // apply filters
+    const itemsFiltered=fila.items.filter(item=>{
+      if(buscar&&!item.prod.toLowerCase().includes(buscar))return false;
+      if(filtro==='venc'){const vi=vencInfo(item.venc);return vi.dias!==null&&vi.dias<=30;}
+      if(filtro==='pend')return item.estado==='pend'||(item.notas&&(item.notas.toLowerCase().includes('pendiente')||item.notas.toLowerCase().includes('verificar')));
+      return true;
+    });
+    if((buscar||filtro)&&!itemsFiltered.length)return'';
+    rendered++;
+
+    const totalLitros=fila.items.filter(i=>i.unidad==='L'&&i.total).reduce((s,i)=>s+(i.total||0),0);
+    const totalKg=fila.items.filter(i=>i.unidad==='kg'&&i.total).reduce((s,i)=>s+(i.total||0),0);
+    const hasPend=fila.items.some(i=>i.estado==='pend'||(i.notas&&(i.notas.toLowerCase().includes('pendiente')||i.notas.toLowerCase().includes('verificar'))));
+    const hasVenc=fila.items.some(i=>{const vi=vencInfo(i.venc);return vi.dias!==null&&vi.dias<=30;});
+    const resumen=[];
+    if(totalLitros>0)resumen.push(`${fmt(totalLitros)} L`);
+    if(totalKg>0)resumen.push(`${fmt(totalKg)} kg`);
+    const badges=(hasPend?'<span class="fila-badge pend">pendiente</span>':'')+(hasVenc?'<span class="fila-badge venc">⚠ vence pronto</span>':'');
+
+    const rows=itemsFiltered.map((item,ii)=>{
+      const realIdx=fila.items.indexOf(item);
+      const vi=vencInfo(item.venc);
+      const rowCls=vi.dias!==null&&vi.dias<=30?'fila-row-venc':(item.estado==='pend'?'fila-row-pend':'');
+      const sc=semClass(item);
+      const ico=tipoIco(item.tipo);
+      const vencHtml=item.venc?`<span class="venc-chip ${vi.cls}">${vi.label}</span>`:`<span class="venc-chip none">—</span>`;
+      return`<tr class="${rowCls}">
+        <td style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          <span class="semaforo ${sc}"></span><span class="tipo-ico">${ico}</span>${item.prod}
+        </td>
+        <td style="color:var(--text-muted);font-size:12px;">${item.presentacion}</td>
+        <td style="font-size:12px;">${item.cantidad}</td>
+        <td style="text-align:right;font-family:var(--mono);">${item.total!=null?fmt(item.total):'—'}</td>
+        <td style="text-align:center;font-size:11px;color:var(--text-muted);">${item.unidad}</td>
+        <td>${vencHtml}</td>
+        <td style="font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;">${item.notas||''}</td>
+        <td style="text-align:center;white-space:nowrap;">
+          <div class="fila-quick-actions">
+            <button class="btn-qa" onclick="qaDescontar('${fila.id}',${realIdx})" title="Descontar">−</button>
+            <button class="btn-qa" onclick="qaAjustar('${fila.id}',${realIdx})" title="Ajustar">✎</button>
+            <button class="btn-qa" onclick="qaTransferir('${fila.id}',${realIdx})" title="Transferir a otra fila">⇄</button>
+            <button class="btn-qa btn-qa-danger" onclick="qaRotura('${fila.id}',${realIdx})" title="Registrar rotura">💔</button>
+          </div>
+          <div class="fila-static-actions" style="display:flex;gap:3px;">
+            <button class="btn-sm" onclick="editarItemFila('${fila.id}',${realIdx})">✎</button>
+            <button class="btn-sm btn-sm-danger" onclick="eliminarItemFila('${fila.id}',${realIdx})">×</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    return`
+    <div class="fila-card" id="fila-${fila.id}">
+      <div class="fila-header" onclick="toggleFila('${fila.id}')">
+        <div class="fila-stripe" style="background:${fila.color}"></div>
+        <div class="fila-header-info">
+          <div class="fila-nombre">${fila.nombre} <span class="fila-badges">${badges}</span></div>
+          <div class="fila-resumen">${fila.items.length} productos${resumen.length?' · '+resumen.join(' / '):''}</div>
+        </div>
+        <div class="fila-header-actions" onclick="event.stopPropagation()">
+          <button class="btn-sm btn-sm-accent" onclick="agregarItemFila('${fila.id}')">+ Producto</button>
+          <button class="btn-sm" onclick="editarNombreFila('${fila.id}')">Renombrar</button>
+          <button class="btn-sm btn-sm-danger" onclick="eliminarFila('${fila.id}')">Eliminar</button>
+        </div>
+        <div class="fila-chevron" id="chev-${fila.id}">▾</div>
+      </div>
+      <div class="fila-body" id="fbody-${fila.id}">
+        <table class="fila-table">
+          <thead><tr>
+            <th style="width:26%">Producto</th>
+            <th style="width:16%">Presentación</th>
+            <th style="width:16%">Cantidad contada</th>
+            <th style="width:8%;text-align:right">Total</th>
+            <th style="width:5%;text-align:center">Ud</th>
+            <th style="width:9%;text-align:center">Vence</th>
+            <th style="width:11%">Notas</th>
+            <th style="width:9%;text-align:center">Acc.</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+  container.innerHTML=html||(buscar||filtro?'<div class="empty"><div class="ico">🔍</div>No hay resultados para ese filtro.</div>':'');
+}
+
+function toggleFila(id){
+  const body=document.getElementById('fbody-'+id);
+  const chev=document.getElementById('chev-'+id);
+  if(!body)return;
+  const open=body.style.display!=='none';
+  body.style.display=open?'none':'block';
+  chev.textContent=open?'▸':'▾';
+}
+
+function agregarFila(){
+  const nombre=prompt('Nombre de la nueva fila (ej: Fila 13, Sector Exterior):');
+  if(!nombre||!nombre.trim())return;
+  const id='f'+Date.now();
+  const color=FILA_COLORS[filas.length%FILA_COLORS.length];
+  filas.push({id,nombre:nombre.trim(),color,items:[]});
+  saveFilas();renderFilas();
+  showToast('✓ Fila "'+nombre.trim()+'" agregada');
+}
+
+function eliminarFila(id){
+  const f=filas.find(x=>x.id===id);if(!f)return;
+  if(!confirm(`¿Eliminar "${f.nombre}" y todos sus productos?`))return;
+  filas=filas.filter(x=>x.id!==id);
+  saveFilas();renderFilas();showToast('Fila eliminada');
+}
+
+function editarNombreFila(id){
+  const f=filas.find(x=>x.id===id);if(!f)return;
+  const nuevo=prompt('Nuevo nombre para la fila:',f.nombre);
+  if(!nuevo||!nuevo.trim())return;
+  f.nombre=nuevo.trim();saveFilas();renderFilas();
+}
+
+// ── ACCIONES RÁPIDAS ───────────────────────────────────────
+let _qaFilaId=null,_qaItemIdx=null;
+
+function _abrirAccion(filaId,idx,titulo,bodyHtml){
+  _qaFilaId=filaId;_qaItemIdx=idx;
+  const f=filas.find(x=>x.id===filaId);
+  const item=f.items[idx];
+  document.getElementById('fa-titulo').textContent=titulo;
+  document.getElementById('fa-sub').textContent=item.prod+' · '+f.nombre;
+  document.getElementById('fa-body').innerHTML=bodyHtml;
+  document.getElementById('overlay-fila-accion').classList.add('open');
+}
+function cerrarAccionModal(){document.getElementById('overlay-fila-accion').classList.remove('open');}
+
+function qaDescontar(filaId,idx){
+  _abrirAccion(filaId,idx,'Descontar stock',`
+    <div class="fg"><label>Cantidad a descontar</label>
+      <input type="number" id="qa-cant" min="0.01" step="0.01" placeholder="Ej: 5" autofocus>
+    </div>
+    <div class="fg"><label>Motivo (opcional)</label>
+      <input type="text" id="qa-motivo" placeholder="Ej: Venta, uso, rotura...">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="btn btn-dark" onclick="_confirmarDescontar()">Descontar</button>
+      <button class="btn btn-ghost" onclick="cerrarAccionModal()">Cancelar</button>
+    </div>`);
+}
+// ── SYNC FILAS → STOCK ACTUAL ─────────────────────────────
+// Busca el producto en inv por nombre (fuzzy) y actualiza el stock físico
+function _syncStockFisico(nombreProd, delta, unidad){
+  // Solo sincronizar litros/kg — no cajas ni unidades sueltas
+  if(!['L','kg','gr'].includes(unidad)) return;
+  if(!delta || isNaN(delta)) return;
+  // Normalizar nombre para matching
+  const norm = s => s.toUpperCase().replace(/[^A-Z0-9]/g,' ').replace(/\s+/g,' ').trim();
+  const target = norm(nombreProd);
+  // Buscar coincidencia en inv
+  let best = null, bestScore = 0;
+  for(const p of inv){
+    const pn = norm(p.nombre);
+    // Score: palabras en común
+    const tw = target.split(' ').filter(w=>w.length>2);
+    const score = tw.filter(w=>pn.includes(w)).length;
+    if(score > bestScore){ bestScore=score; best=p; }
+  }
+  if(best && bestScore >= 2){
+    const anterior = best.fisico;
+    best.fisico = parseFloat((best.fisico + delta).toFixed(2));
+    console.log(`Stock sync: ${best.nombre} ${fmt(anterior)} → ${fmt(best.fisico)} (delta: ${delta>0?'+':''}${delta})`);
+    renderMetrics(); renderTabla();
+  }
+}
+
+function _confirmarDescontar(){
+  const cant=parseFloat(document.getElementById('qa-cant').value);
+  if(!cant||cant<=0){showToast('Ingresá una cantidad válida');return;}
+  const f=filas.find(x=>x.id===_qaFilaId);
+  const item=f.items[_qaItemIdx];
+  if(item.total!=null){item.total=Math.max(0,item.total-cant);}
+  const motivo=document.getElementById('qa-motivo').value.trim();
+  if(motivo)item.notas=(item.notas?item.notas+' | ':'')+motivo;
+  _syncStockFisico(item.prod, -cant, item.unidad);
+  _registrarEnHistorial('descontar', item.prod, f.nombre, cant, item.unidad, null, item.total, motivo||'Descuento manual');
+  saveFilas();cerrarAccionModal();renderFilas();renderHistorial();
+  showToast(`✓ Descontado ${fmt(cant)} de ${item.prod}`);
+}
+
+function qaAjustar(filaId,idx){
+  const f=filas.find(x=>x.id===filaId);
+  const item=f.items[idx];
+  _abrirAccion(filaId,idx,'Ajustar total',`
+    <div class="fg"><label>Nuevo total</label>
+      <input type="number" id="qa-nuevo" step="0.01" value="${item.total??''}" autofocus>
+    </div>
+    <div class="fg"><label>Motivo</label>
+      <input type="text" id="qa-motivo" placeholder="Ej: Reconteo, corrección...">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="btn btn-dark" onclick="_confirmarAjustar()">Guardar ajuste</button>
+      <button class="btn btn-ghost" onclick="cerrarAccionModal()">Cancelar</button>
+    </div>`);
+}
+function _confirmarAjustar(){
+  const val=document.getElementById('qa-nuevo').value;
+  const f=filas.find(x=>x.id===_qaFilaId);
+  const item=f.items[_qaItemIdx];
+  const totalAnterior=item.total??0;
+  item.total=val!==''?parseFloat(val):null;
+  item.estado='ok';
+  const motivo=document.getElementById('qa-motivo').value.trim();
+  if(motivo)item.notas=(item.notas?item.notas+' | ':'')+motivo;
+  // Sincronizar la diferencia con el stock físico
+  const delta=(item.total??0)-totalAnterior;
+  if(delta!==0) _syncStockFisico(item.prod, delta, item.unidad);
+  _registrarEnHistorial('ajustar', item.prod, f.nombre, item.total, item.unidad, totalAnterior, item.total, motivo||'Ajuste de total');
+  saveFilas();cerrarAccionModal();renderFilas();renderHistorial();
+  showToast(`✓ Total ajustado: ${item.prod}`);
+}
+
+function qaTransferir(filaId,idx){
+  const f=filas.find(x=>x.id===filaId);
+  const item=f.items[idx];
+  const opsFila=filas.filter(x=>x.id!==filaId).map(x=>`<option value="${x.id}">${x.nombre}</option>`).join('');
+  const totalDisp=item.total!=null?item.total:0;
+  _abrirAccion(filaId,idx,'Transferir a otra fila',`
+    <div class="fg"><label>Cantidad a transferir</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="number" id="qa-cant" min="0.01" step="0.01" placeholder="Ej: 5" style="flex:1;" autofocus>
+        <button class="btn-sm btn-sm-accent" onclick="document.getElementById('qa-cant').value=${totalDisp};document.getElementById('qa-cant').dispatchEvent(new Event('input'));" style="white-space:nowrap;padding:6px 12px;">Todo (${fmt(totalDisp)} ${item.unidad})</button>
+      </div>
+    </div>
+    <div class="fg"><label>Destino</label>
+      <select id="qa-destino">${opsFila}</select>
+    </div>
+    <div id="qa-preview" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;font-family:var(--mono);"></div>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="btn btn-dark" onclick="_confirmarTransferir()">Transferir</button>
+      <button class="btn btn-ghost" onclick="cerrarAccionModal()">Cancelar</button>
+    </div>`);
+  document.getElementById('qa-cant').oninput=()=>{
+    const cv=parseFloat(document.getElementById('qa-cant').value)||0;
+    const resto=item.total!=null?item.total-cv:null;
+    document.getElementById('qa-preview').textContent=cv>0&&item.total!=null?`Queda en ${f.nombre}: ${fmt(Math.max(0,resto))} ${item.unidad}`:'';
+  };
+}
+function _confirmarTransferir(){
+  const cant=parseFloat(document.getElementById('qa-cant').value);
+  const destId=document.getElementById('qa-destino').value;
+  if(!cant||cant<=0){showToast('Ingresá una cantidad válida');return;}
+  const fOrig=filas.find(x=>x.id===_qaFilaId);
+  const fDest=filas.find(x=>x.id===destId);
+  const item=fOrig.items[_qaItemIdx];
+  // descontar del origen — si queda en 0 o se transfiere todo, eliminar de la fila
+  const totalOrig = item.total??0;
+  const nuevoTotal = Math.max(0, totalOrig - cant);
+  if(nuevoTotal === 0 || cant >= totalOrig){
+    // Eliminar de la fila origen
+    fOrig.items.splice(_qaItemIdx, 1);
+  } else {
+    item.total = nuevoTotal;
+  }
+  // agregar en destino
+  const existing=fDest.items.find(i=>i.prod===item.prod&&i.unidad===item.unidad);
+  if(existing&&existing.total!=null)existing.total+=cant;
+  else fDest.items.push({...item,total:cant,cantidad:`${fmt(cant)} ${item.unidad} (de ${fOrig.nombre})`,notas:`Transferido desde ${fOrig.nombre}`});
+  _registrarEnHistorial('transferir', item.prod, fOrig.nombre+' → '+fDest.nombre, cant, item.unidad, totalOrig, nuevoTotal, `Transferido a ${fDest.nombre}`);
+  saveFilas();cerrarAccionModal();renderFilas();renderHistorial();
+  showToast(`✓ ${fmt(cant)} ${item.unidad} de ${item.prod} → ${fDest.nombre}`);
+}
+
+function qaRotura(filaId,idx){
+  _abrirAccion(filaId,idx,'Registrar rotura / merma',`
+    <div class="fg"><label>Cantidad dañada / perdida</label>
+      <input type="number" id="qa-cant" min="0.01" step="0.01" placeholder="Ej: 1" autofocus>
+    </div>
+    <div class="fg"><label>Detalle</label>
+      <input type="text" id="qa-motivo" placeholder="Ej: Bidón roto, derrame, pérdida...">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="btn btn-dark" onclick="_confirmarRotura()">Registrar</button>
+      <button class="btn btn-ghost" onclick="cerrarAccionModal()">Cancelar</button>
+    </div>`);
+}
+function _confirmarRotura(){
+  const cant=parseFloat(document.getElementById('qa-cant').value);
+  if(!cant||cant<=0){showToast('Ingresá una cantidad válida');return;}
+  const f=filas.find(x=>x.id===_qaFilaId);
+  const item=f.items[_qaItemIdx];
+  if(item.total!=null)item.total=Math.max(0,item.total-cant);
+  const det=document.getElementById('qa-motivo').value.trim()||'rotura';
+  item.notas=(item.notas?item.notas+' | ':'')+`Rotura: ${fmt(cant)} ${item.unidad} (${det})`;
+  item.estado='diff';
+  _syncStockFisico(item.prod, -cant, item.unidad);
+  _registrarEnHistorial('rotura', item.prod, f.nombre, cant, item.unidad, null, item.total, det);
+  saveFilas();cerrarAccionModal();renderFilas();renderHistorial();
+  showToast(`⚠ Rotura registrada: ${item.prod}`);
+}
+
+// ── Modal agregar/editar item ──────────────────────────────
+let _editFilaId=null,_editItemIdx=null;
+
+function _fillModal(item){
+  document.getElementById('fi-prod').value=item?item.prod:'';
+  document.getElementById('fi-pres').value=item?item.presentacion:'';
+  document.getElementById('fi-cant').value=item?item.cantidad:'';
+  document.getElementById('fi-total').value=item&&item.total!=null?item.total:'';
+  populateUnidadSelect();
+  document.getElementById('fi-unidad').value=item&&item.unidad&&unidades.includes(item.unidad)?item.unidad:(unidades[0]||'L');
+  document.getElementById('fi-tipo').value=item&&item.tipo?item.tipo:'liquido';
+  document.getElementById('fi-venc').value=item&&item.venc?item.venc:'';
+  document.getElementById('fi-estado').value=item&&item.estado?item.estado:'ok';
+  document.getElementById('fi-notas').value=item?item.notas||'':'';
+}
+
+function agregarItemFila(filaId){
+  _editFilaId=filaId;_editItemIdx=null;
+  _fillModal(null);
+  const f=filas.find(x=>x.id===filaId);
+  document.getElementById('fi-modal-title').textContent='Agregar producto — '+(f?f.nombre:'');
+  document.getElementById('overlay-fila-item').classList.add('open');
+}
+function editarItemFila(filaId,idx){
+  _editFilaId=filaId;_editItemIdx=idx;
+  const f=filas.find(x=>x.id===filaId);if(!f)return;
+  _fillModal(f.items[idx]);
+  document.getElementById('fi-modal-title').textContent='Editar producto — '+(f?f.nombre:'');
+  document.getElementById('overlay-fila-item').classList.add('open');
+}
+function cerrarFilaModal(){document.getElementById('overlay-fila-item').classList.remove('open');}
+
+function guardarFilaItem(){
+  const prod=document.getElementById('fi-prod').value.trim();
+  if(!prod){showToast('Ingresá el nombre del producto');return;}
+  const item={
+    prod,
+    tipo:document.getElementById('fi-tipo').value||'liquido',
+    presentacion:document.getElementById('fi-pres').value.trim()||'—',
+    cantidad:document.getElementById('fi-cant').value.trim()||'—',
+    total:document.getElementById('fi-total').value!==''?parseFloat(document.getElementById('fi-total').value):null,
+    unidad:document.getElementById('fi-unidad').value||'L',
+    venc:document.getElementById('fi-venc').value||'',
+    estado:document.getElementById('fi-estado').value||'ok',
+    notas:document.getElementById('fi-notas').value.trim(),
+  };
+  const f=filas.find(x=>x.id===_editFilaId);if(!f)return;
+  const esNuevo=_editItemIdx===null;
+  const itemAnterior=esNuevo?null:f.items[_editItemIdx];
+  if(esNuevo)f.items.push(item);
+  else f.items[_editItemIdx]=item;
+  const tipoEvt=esNuevo?'agregar':'editar_fila';
+  const detalle=esNuevo?`Agregado a ${f.nombre}`:`Editado en ${f.nombre}${itemAnterior&&itemAnterior.total!==item.total?' (total: '+fmt(itemAnterior.total??0)+' → '+fmt(item.total??0)+')':''}`;
+  _registrarEnHistorial(tipoEvt, item.prod, f.nombre, item.total??'—', item.unidad||'', itemAnterior?.total??null, item.total??null, detalle);
+  saveFilas();cerrarFilaModal();renderFilas();renderHistorial();
+  showToast(esNuevo?'✓ Producto agregado':'✓ Producto actualizado');
+}
+
+function eliminarItemFila(filaId,idx){
+  const f=filas.find(x=>x.id===filaId);if(!f)return;
+  const item=f.items[idx];
+  // Usar modal de acción para pedir motivo antes de eliminar
+  _qaFilaId=filaId;_qaItemIdx=idx;
+  document.getElementById('fa-titulo').textContent='Eliminar producto';
+  document.getElementById('fa-sub').textContent=item.prod+' · '+f.nombre;
+  document.getElementById('fa-body').innerHTML=`
+    <div style="background:var(--danger-light);border:.5px solid var(--danger-border);border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:13px;color:var(--danger);">
+      ⚠ Esta acción no se puede deshacer. El producto se eliminará de la fila.
+    </div>
+    <div class="fg"><label>Motivo de eliminación (opcional)</label>
+      <input type="text" id="qa-motivo-elim" placeholder="Ej: Vendido, devuelto, vencido, transferido a otro depósito...">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="btn btn-dark" style="background:var(--danger);border-color:var(--danger);" onclick="_confirmarEliminarItem()">Eliminar</button>
+      <button class="btn btn-ghost" onclick="cerrarAccionModal()">Cancelar</button>
+    </div>`;
+  document.getElementById('overlay-fila-accion').classList.add('open');
+}
+function _confirmarEliminarItem(){
+  const f=filas.find(x=>x.id===_qaFilaId);if(!f)return;
+  const item=f.items[_qaItemIdx];
+  const motivo=document.getElementById('qa-motivo-elim').value.trim()||'Eliminado de la fila';
+  // Descontar del stock físico si tiene total definido
+  if(item.total!=null && item.total>0){
+    _syncStockFisico(item.prod, -item.total, item.unidad);
+  }
+  _registrarEnHistorial('eliminar', item.prod, f.nombre, item.total??'—', item.unidad||'', item.total??null, 0, motivo);
+  f.items.splice(_qaItemIdx,1);
+  saveFilas();cerrarAccionModal();renderFilas();renderHistorial();
+  showToast('Producto eliminado · stock actualizado');
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.display='block';
+  setTimeout(()=>t.style.display='none',2800);
+}
+
+
+
+
+// ── PATCH STOCK 23/05 ─────────────────────────────────────
+function patchStock23May(){
+  const csvMap = {"Fila 1": [{"prod": "Acuron Pack", "total": 20.0, "unidad": "Packs"}, {"prod": "Ampligo", "total": 27.0, "unidad": "L"}, {"prod": "Banvel", "total": 302.5, "unidad": "L"}, {"prod": "Enelan", "total": 335.0, "unidad": "L"}, {"prod": "Engeo S", "total": 315.0, "unidad": "L"}, {"prod": "Festio Triple Pack", "total": 50.0, "unidad": "Packs"}, {"prod": "Flontus", "total": 32.5, "unidad": "L"}, {"prod": "Mazen Ace 4x5L", "total": 40.0, "unidad": "L"}, {"prod": "Miravis Duo", "total": 900.0, "unidad": "L"}, {"prod": "Planter", "total": 160.0, "unidad": "L"}, {"prod": "StimWize Energizer", "total": 140.0, "unidad": "L"}, {"prod": "StimWize verde", "total": 240.0, "unidad": "L"}, {"prod": "Vibrance Gold 4x5L", "total": 635.0, "unidad": "L"}, {"prod": "Vibrance Integral 4x5L", "total": 40.0, "unidad": "L"}, {"prod": "Voleris", "total": 1346.67, "unidad": "L"}, {"prod": "Zeek", "total": 90.0, "unidad": "L"}], "Fila 10": [{"prod": "Acuron Uno", "total": 2.5, "unidad": "L"}, {"prod": "Curyom FitUV", "total": 20.0, "unidad": "kg"}, {"prod": "Nuvoxl", "total": 160.0, "unidad": "L"}, {"prod": "Stimwise Verde", "total": 340.0, "unidad": "L"}, {"prod": "Vesdua", "total": 135.0, "unidad": "L"}], "Fila 11": [{"prod": "Acuron Uno", "total": 2.5, "unidad": "L"}, {"prod": "Dicamba Sigma", "total": 380.0, "unidad": "L"}, {"prod": "Diflufenican 50 Sigma", "total": 115.0, "unidad": "L"}, {"prod": "Megafol", "total": 1460.0, "unidad": "L"}, {"prod": "Reglone", "total": 10.0, "unidad": "L"}, {"prod": "Tuken SC", "total": 5.0, "unidad": "L"}], "Fila 3": [{"prod": "Amistar Xtra", "total": 340.0, "unidad": "L"}, {"prod": "Glifosato Full II Sigma", "total": 1680.0, "unidad": "L"}, {"prod": "Hydrop 10", "total": 84.0, "unidad": "L"}, {"prod": "Hydrop 360", "total": 50.0, "unidad": "L"}, {"prod": "Hydrop Mix", "total": 60.0, "unidad": "L"}, {"prod": "Hydrop Oil", "total": 380.0, "unidad": "L"}, {"prod": "Moddus", "total": 195.0, "unidad": "L"}, {"prod": "Sulfosato", "total": 1673.33, "unidad": "L"}, {"prod": "Voleris", "total": 1346.67, "unidad": "L"}], "Fila 9": [{"prod": "Axial Plus", "total": 15.0, "unidad": "L"}, {"prod": "Cleto 24% EC", "total": 20.0, "unidad": "L"}, {"prod": "Cletodim Sigma", "total": 460.0, "unidad": "L"}, {"prod": "Dual Gold", "total": 506.66, "unidad": "L"}, {"prod": "Hydrop Oil", "total": 380.0, "unidad": "L"}, {"prod": "Megafol", "total": 1460.0, "unidad": "L"}, {"prod": "PARAQUAT SIGMA", "total": 200.0, "unidad": "L"}], "Fila 4": [{"prod": "Banvel", "total": 302.5, "unidad": "L"}, {"prod": "Clearsol DF", "total": 33.6, "unidad": "kg"}, {"prod": "Dual Gold", "total": 506.67, "unidad": "L"}, {"prod": "Enelan", "total": 335.0, "unidad": "L"}, {"prod": "Gesaprim 90 WDGT", "total": 1540.0, "unidad": "kg"}, {"prod": "Glifosato Full II Sigma", "total": 1680.0, "unidad": "L"}, {"prod": "Miravis Triple Pack", "total": 30.0, "unidad": "Packs"}, {"prod": "TALIS", "total": 400.0, "unidad": "L"}], "Fila 2": [{"prod": "Bolsas maíz", "total": 20.0, "unidad": "kg"}, {"prod": "Chikara", "total": 10.0, "unidad": "L"}, {"prod": "Cruiser Pack HC", "total": 13.67, "unidad": "Packs"}, {"prod": "Dagger 60 WG - Metsulfuron", "total": 100.0, "unidad": "gr"}, {"prod": "Festio Triple Pack", "total": 50.0, "unidad": "Packs"}, {"prod": "Glifosato Full II Sigma", "total": 1680.0, "unidad": "L"}, {"prod": "Metsulfuron", "total": 400.0, "unidad": "gr"}, {"prod": "speedwet xion silicongel", "total": 12.0, "unidad": "L"}, {"prod": "Stimwise Boro (blanco)", "total": 260.0, "unidad": "L"}, {"prod": "Stimwise Verde", "total": 340.0, "unidad": "L"}, {"prod": "Sulfosato Touchdown Max", "total": 1765.0, "unidad": "kg"}, {"prod": "Sunset 48 SC", "total": 40.0, "unidad": "L"}, {"prod": "Tekove - Mesotrione", "total": 400.0, "unidad": "L"}, {"prod": "Tribu 48 SG - Mesotrione", "total": 80.0, "unidad": "L"}, {"prod": "Virantra 4x5L", "total": 230.0, "unidad": "L"}], "Fila 8": [{"prod": "Dual Gold", "total": 506.67, "unidad": "L"}, {"prod": "Glifosato Full II Sigma", "total": 1680.0, "unidad": "L"}, {"prod": "Goten (Atrazina)", "total": 1100.0, "unidad": "kg"}, {"prod": "Karate Zeon", "total": 145.0, "unidad": "L"}, {"prod": "Peak Pack L", "total": 73.0, "unidad": "cajas"}], "Fila 6": [{"prod": "Semillas", "total": 0.0, "unidad": "—"}], "Fila 7": [{"prod": "Semillas", "total": 0.0, "unidad": "—"}], "Fila 5": [{"prod": "Sulfosato", "total": 1673.33, "unidad": "L"}, {"prod": "Voleris", "total": 1346.66, "unidad": "L"}], "Fila 12": [{"prod": "Sulfosato", "total": 1673.34, "unidad": "L"}, {"prod": "Sulfosato Touchdown Max", "total": 1765.0, "unidad": "kg"}, {"prod": "Zavovia", "total": 80.0, "unidad": "L"}]};
+  let replaced=0, skipped=[];
+  Object.entries(csvMap).forEach(([filaNombre, csvItems])=>{
+    const fila=filas.find(f=>f.nombre===filaNombre);
+    if(!fila){ skipped.push(filaNombre); return; }
+    // Preserve existing item metadata (presentacion, cantidad, venc, notas)
+    // but set prod name and total from CSV
+    const newItems=csvItems.map(csvItem=>{
+      // Search across ALL filas for existing metadata
+      let meta=null;
+      for(const f of filas){
+        meta=f.items.find(i=>i.prod.trim().toLowerCase()===csvItem.prod.toLowerCase());
+        if(meta) break;
+      }
+      if(!meta){
+        for(const f of filas){
+          meta=f.items.find(i=>{
+            const a=i.prod.toLowerCase(), b=csvItem.prod.toLowerCase();
+            const wa=a.split(' ').filter(w=>w.length>3);
+            return wa.some(w=>b.includes(w));
+          });
+          if(meta) break;
+        }
+      }
+      return {
+        prod: csvItem.prod,
+        tipo: meta?.tipo||'liquido',
+        presentacion: meta?.presentacion||'—',
+        cantidad: meta?.cantidad||'—',
+        total: csvItem.total,
+        unidad: csvItem.unidad||'L',
+        venc: meta?.venc||'',
+        estado: meta?.estado||'ok',
+        notas: meta?.notas||''
+      };
+    });
+    fila.items=newItems;
+    replaced++;
+  });
+  console.log('Patch: '+replaced+' filas reemplazadas, '+skipped.length+' no encontradas');
+  if(skipped.length) console.warn('No encontradas:', skipped);
+  return {replaced, skipped};
+}
+
+async function aplicarPatchStock(){
+  if(!confirm('Esto reemplaza el contenido de cada fila con los datos del CSV del 23/05.\n¿Continuar?')) return;
+  const btn=document.getElementById('btn-patch-stock');
+  if(btn){ btn.disabled=true; btn.textContent='Aplicando...'; }
+  const r=patchStock23May();
+  renderFilas(); renderResumen();
+  await saveAll();
+  if(btn) btn.style.display='none';
+  showToast('✓ '+r.replaced+' filas actualizadas'+(r.skipped.length?' · no encontradas: '+r.skipped.join(', '):''));
+}
+
+
+function exportarBackup(){
+  const data={inv,hist,rubros,unidades,filas,ts:Date.now()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='backup_inventario_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  showToast('✓ Backup exportado');
+}
+
+// ── INIT ───────────────────────────────────────────────────
+(async()=>{
+  // loadFilas ahora viene de Firebase via fetchData
+  await fetchData();
+  populateFiltros();renderMetrics();renderTabla();populateProductoSelect();
+  renderRubros();renderConfigList();populateRubroSelects();
+  renderResumen();
+  document.getElementById('loading-screen').classList.add('hidden');
+  // Auto-sync cada 60 seg para ver cambios de Fede
+  setInterval(async()=>{
+    await fetchData();
+    populateFiltros();renderMetrics();renderTabla();populateProductoSelect();
+    const tab=document.querySelector('.tab-content.active');
+    if(tab&&tab.id==='tab-historial')renderHistorial();
+    if(tab&&tab.id==='tab-filas')renderFilas();
+  }, 60000);
+})();
+</script>
+</body>
+</html>
