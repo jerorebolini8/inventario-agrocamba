@@ -952,8 +952,8 @@ async function fetchData(){
       hist     = histData || [];
       rubros   = data.rubros   && data.rubros.length>0   ? data.rubros   : [...BASE_RUBROS];
       unidades = data.unidades && data.unidades.length>0 ? data.unidades : [...BASE_UNIDADES];
-      // Use SAVED_FILAS if embedded (manual override), otherwise use Firebase
-      filas    = (SAVED_FILAS && SAVED_FILAS.length>0) ? JSON.parse(JSON.stringify(SAVED_FILAS)) : (data.filas && data.filas.length>0 ? data.filas : JSON.parse(JSON.stringify(FILAS_BASE)));
+      // Siempre priorizar Firebase; SAVED_FILAS solo como fallback si Firebase no tiene datos
+      filas    = (data.filas && data.filas.length>0) ? data.filas : (SAVED_FILAS && SAVED_FILAS.length>0 ? JSON.parse(JSON.stringify(SAVED_FILAS)) : JSON.parse(JSON.stringify(FILAS_BASE)));
       setSyncStatus('ok','Conectado · '+hist.length+' mov.');
     } else {
       // Primera vez — subir datos base
