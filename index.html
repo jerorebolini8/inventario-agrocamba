@@ -185,6 +185,13 @@ select.flt{padding:7px 9px;font-size:13px;font-family:var(--font);border:1px sol
 .dash-row .dr-val.warn{color:var(--warn);}
 .dash-row .dr-val.danger{color:var(--danger);}
 .dash-empty{font-size:13px;color:var(--text-muted);text-align:center;padding:1.5rem 0;opacity:.7;}
+.dash-metrics{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1.25rem;}
+.dash-pill{display:flex;align-items:center;gap:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:8px 18px;}
+.dash-pill .dp-lbl{font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);}
+.dash-pill .dp-val{font-size:22px;font-weight:700;font-family:var(--mono);line-height:1.2;}
+.dash-pill .dp-val.ok{color:#166534;}
+.dash-pill .dp-val.warn{color:#92400e;}
+.dash-pill .dp-val.danger{color:#991b1b;}
 
 /* ALERTAS MAS VISIBLES */
 .alert-banner{background:#fde8e8;border:1.5px solid #e57373;border-radius:10px;padding:10px 15px;font-size:13px;font-weight:500;color:#7a1515;margin-bottom:1rem;display:none;}
@@ -367,6 +374,38 @@ tbody tr:hover td{background:#fafaf8;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 ::-webkit-scrollbar{width:6px;}
 ::-webkit-scrollbar-thumb{background:var(--border-dark);border-radius:3px;}
+
+/* NOTAS Y TAREAS */
+.nota-form{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.25rem;}
+.nota-lista{display:flex;flex-direction:column;gap:8px;}
+.nota-item{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:11px 15px;display:flex;align-items:flex-start;gap:11px;transition:box-shadow .15s;}
+.nota-item:hover{box-shadow:0 2px 10px rgba(0,0,0,.07);}
+.nota-item.done{opacity:.55;}
+.nota-item.done .nota-texto{text-decoration:line-through;color:var(--text-muted);}
+.nota-check{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border-dark);cursor:pointer;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.nota-check.checked{background:var(--accent);border-color:var(--accent);}
+.nota-check.checked::after{content:'✓';font-size:11px;color:#fff;font-weight:700;}
+.nota-body{flex:1;min-width:0;}
+.nota-texto{font-size:13.5px;font-weight:500;line-height:1.4;word-break:break-word;}
+.nota-meta{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;}
+.nota-fecha{font-size:11px;color:var(--text-muted);font-family:var(--mono);}
+.nota-tag{font-size:10.5px;padding:1px 8px;border-radius:10px;font-weight:500;}
+.nota-tag.urgente{background:#fee2e2;color:#991b1b;}
+.nota-tag.consulta{background:#dbeafe;color:#1e40af;}
+.nota-tag.tarea{background:#fef3c7;color:#92400e;}
+.nota-tag.recordatorio{background:#ede9fe;color:#5b21b6;}
+.nota-vence{font-size:11px;font-family:var(--mono);padding:1px 8px;border-radius:10px;}
+.nota-vence.vencida{background:#fee2e2;color:#991b1b;font-weight:600;}
+.nota-vence.hoy{background:#fef3c7;color:#92400e;font-weight:600;}
+.nota-vence.pronto{background:#fef3c7;color:#92400e;}
+.nota-vence.ok{background:#d1fae5;color:#065f46;}
+.nota-actions{display:flex;gap:4px;flex-shrink:0;margin-top:1px;}
+.notas-vacio{text-align:center;padding:3rem 1rem;color:var(--text-muted);font-size:13px;}
+.notas-vacio .ico{font-size:32px;margin-bottom:.5rem;opacity:.4;}
+.notas-filtros{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;}
+.nf-btn{padding:5px 13px;font-size:12px;border-radius:20px;border:1px solid var(--border-dark);background:transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);transition:all .15s;}
+.nf-btn:hover{background:var(--bg-card);color:var(--text);}
+.nf-btn.active{background:var(--bg-sidebar);color:#fff;border-color:var(--bg-sidebar);}
 </style>
 </head>
 <body>
@@ -409,6 +448,10 @@ tbody tr:hover td{background:#fafaf8;}
     <button class="nav-btn" onclick="showTab('dashboard')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       Resumen galpón
+    </button>
+    <button class="nav-btn" onclick="showTab('notas')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Notas y tareas
     </button>
   </div>
   <div class="sync-wrap">
@@ -751,6 +794,57 @@ tbody tr:hover td{background:#fafaf8;}
     </div>
   </div>
 
+
+  <!-- NOTAS Y TAREAS -->
+  <div id="tab-notas" class="tab-content">
+    <div class="topbar">
+      <div><div class="page-title">Notas y tareas</div><div class="page-sub">Recordatorios, consultas pendientes y tareas · guardado en Firebase</div></div>
+      <button class="btn-export" onclick="limpiarNotasCompletadas()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+        Limpiar completadas
+      </button>
+    </div>
+    <div class="content">
+      <!-- Formulario nueva nota -->
+      <div class="nota-form">
+        <div class="fg-row" style="align-items:flex-end;">
+          <div class="fg" style="flex:3;margin-bottom:0;">
+            <label>Nota / tarea / recordatorio</label>
+            <input type="text" id="nota-texto" placeholder="Ej: Consultar precio Glifosato con proveedor, pedir factura Banvel..." onkeydown="if(event.key==='Enter')agregarNota()">
+          </div>
+          <div class="fg" style="flex:1;margin-bottom:0;">
+            <label>Categoría</label>
+            <select id="nota-tipo">
+              <option value="tarea">📋 Tarea</option>
+              <option value="consulta">❓ Consulta</option>
+              <option value="urgente">🔴 Urgente</option>
+              <option value="recordatorio">🔔 Recordatorio</option>
+            </select>
+          </div>
+          <div class="fg" style="flex:1;margin-bottom:0;">
+            <label>Fecha límite (opcional)</label>
+            <input type="date" id="nota-vence">
+          </div>
+          <div style="flex-shrink:0;padding-bottom:0;">
+            <button class="btn btn-dark" onclick="agregarNota()">+ Agregar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="notas-filtros">
+        <button class="nf-btn active" onclick="setNotaFiltro('todas',this)">Todas</button>
+        <button class="nf-btn" onclick="setNotaFiltro('pendientes',this)">Pendientes</button>
+        <button class="nf-btn" onclick="setNotaFiltro('urgente',this)">🔴 Urgentes</button>
+        <button class="nf-btn" onclick="setNotaFiltro('consulta',this)">❓ Consultas</button>
+        <button class="nf-btn" onclick="setNotaFiltro('tarea',this)">📋 Tareas</button>
+        <button class="nf-btn" onclick="setNotaFiltro('vence',this)">⏰ Con fecha</button>
+      </div>
+
+      <div class="nota-lista" id="notas-lista"></div>
+    </div>
+  </div>
+
 </main>
 
 <!-- MODAL VENCIMIENTOS MASIVOS -->
@@ -1012,7 +1106,7 @@ const BASE=[
 const BASE_RUBROS=['Fertilizantes','Bioestimulantes','Coayudantes','Curasemillas','Fungicidas','Herbicidas','Insecticidas','Semillas Maíz','Semillas Girasol','Semillas Trigo','Semillas Soja'];
 const BASE_UNIDADES=['L','kg','gr','u','cajas','bolsas','—'];
 
-let inv=[], hist=[], rubros=[], unidades=[], editIdx=null, detId=null, editProdId=null;
+let inv=[], hist=[], rubros=[], unidades=[], notas=[], editIdx=null, detId=null, editProdId=null;
 
 // ── PERSISTENCIA LOCAL ────────────────────────────────────
 function setSyncStatus(state,text){
@@ -1042,6 +1136,7 @@ async function fetchData(){
       unidades = data.unidades && data.unidades.length>0 ? data.unidades : [...BASE_UNIDADES];
       // Siempre priorizar Firebase; SAVED_FILAS solo como fallback si Firebase no tiene datos
       filas    = (data.filas && data.filas.length>0) ? data.filas : (SAVED_FILAS && SAVED_FILAS.length>0 ? JSON.parse(JSON.stringify(SAVED_FILAS)) : JSON.parse(JSON.stringify(FILAS_BASE)));
+      notas    = data.notas && data.notas.length>0 ? data.notas : [];
       setSyncStatus('ok','Conectado · '+hist.length+' mov.');
     } else {
       // Primera vez — subir datos base
@@ -1084,7 +1179,7 @@ async function saveAll(){
       setTimeout(saveAll, 1500);
       return;
     }
-    await window._fbSave({inv, rubros, unidades, filas, ts: Date.now()});
+    await window._fbSave({inv, rubros, unidades, filas, notas, ts: Date.now()});
     setSyncStatus('ok','Guardado · '+hist.length+' mov.');
     setUltimaSync();
   }catch(e){
@@ -1915,13 +2010,14 @@ function showTab(tab){
   document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(btn=>btn.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
-  document.querySelectorAll('.nav-btn')[['resumen','movimiento','historial','filas','config','dashboard'].indexOf(tab)].classList.add('active');
+  document.querySelectorAll('.nav-btn')[['resumen','movimiento','historial','filas','config','dashboard','notas'].indexOf(tab)].classList.add('active');
   if(tab==='historial')renderHistorial();
   if(tab==='config'){renderRubros();renderUnidades();renderConfigList();populateRubroSelects();populateCfgFilaSel();populateCfgUnidadSel();}
   if(tab==='filas')renderFilas();
   if(tab==='resumen')renderResumen();
   if(tab==='movimiento'){populateMvFilaSelect();renderResumenMetrics();}
   if(tab==='dashboard')renderDashboard();
+  if(tab==='notas')renderNotas();
 }
 
 // ── FILAS DEL GALPÓN ───────────────────────────────────────
@@ -2737,10 +2833,10 @@ function renderDashboard(){
   const dangerCount = resumen.filter(d=>d.total<=0).length;
   const warnCount = resumen.filter(d=>d.total>0&&d.total<=20).length;
   document.getElementById('dash-metrics').innerHTML=`
-    <div class="mc"><div class="mc-lbl">Total productos</div><div class="mc-val">${totalProds}</div></div>
-    <div class="mc"><div class="mc-lbl">Sin stock</div><div class="mc-val danger">${dangerCount}</div></div>
-    <div class="mc"><div class="mc-lbl">Stock bajo</div><div class="mc-val warn">${warnCount}</div></div>
-    <div class="mc"><div class="mc-lbl">Vencen en ≤30 días</div><div class="mc-val ${proxVenc>0?'danger':'ok'}">${proxVenc}</div></div>
+    <div class="dash-pill"><div><div class="dp-lbl">Total productos</div><div class="dp-val">${totalProds}</div></div></div>
+    <div class="dash-pill"><div><div class="dp-lbl">Sin stock</div><div class="dp-val danger">${dangerCount}</div></div></div>
+    <div class="dash-pill"><div><div class="dp-lbl">Stock bajo</div><div class="dp-val warn">${warnCount}</div></div></div>
+    <div class="dash-pill"><div><div class="dp-lbl">Vencen en ≤30 días</div><div class="dp-val ${proxVenc>0?'danger':'ok'}">${proxVenc}</div></div></div>
   `;
 
   // Stock crítico / bajo
@@ -2823,6 +2919,115 @@ function renderDashboard(){
         <span class="dr-val warn">${fmt(d.total)} ${d.unidad}</span>
       </div>`).join('');
   }
+}
+
+
+// ── NOTAS Y TAREAS ────────────────────────────────────────
+let notas = [];
+let _notaFiltro = 'todas';
+
+function setNotaFiltro(filtro, btn){
+  _notaFiltro = filtro;
+  document.querySelectorAll('.nf-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderNotas();
+}
+
+function agregarNota(){
+  const texto = document.getElementById('nota-texto').value.trim();
+  if(!texto){ showToast('Escribí algo primero'); return; }
+  const tipo = document.getElementById('nota-tipo').value;
+  const vence = document.getElementById('nota-vence').value;
+  const now = new Date();
+  const nota = {
+    id: Date.now(),
+    texto,
+    tipo,
+    vence,
+    done: false,
+    fecha: now.toLocaleDateString('es-AR') + ' ' + now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})
+  };
+  notas.unshift(nota);
+  document.getElementById('nota-texto').value = '';
+  document.getElementById('nota-vence').value = '';
+  renderNotas();
+  saveNotas();
+  showToast('✓ Nota agregada');
+}
+
+function toggleNota(id){
+  const n = notas.find(x=>x.id===id);
+  if(n){ n.done = !n.done; renderNotas(); saveNotas(); }
+}
+
+function eliminarNota(id){
+  notas = notas.filter(x=>x.id!==id);
+  renderNotas();
+  saveNotas();
+}
+
+function limpiarNotasCompletadas(){
+  const cant = notas.filter(n=>n.done).length;
+  if(!cant){ showToast('No hay notas completadas'); return; }
+  if(!confirm(`¿Eliminar ${cant} nota${cant>1?'s':''} completada${cant>1?'s':''}?`)) return;
+  notas = notas.filter(n=>!n.done);
+  renderNotas();
+  saveNotas();
+  showToast('✓ Notas completadas eliminadas');
+}
+
+function venceLbl(vence){
+  if(!vence) return null;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const d = new Date(vence);
+  const dias = Math.round((d - hoy)/(1000*60*60*24));
+  if(dias < 0) return {txt:`Venció hace ${Math.abs(dias)}d`, cls:'vencida'};
+  if(dias === 0) return {txt:'Vence hoy', cls:'hoy'};
+  if(dias <= 3) return {txt:`Vence en ${dias}d`, cls:'pronto'};
+  return {txt:d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'}), cls:'ok'};
+}
+
+function renderNotas(){
+  const lista = document.getElementById('notas-lista');
+  if(!lista) return;
+
+  let data = [...notas];
+  if(_notaFiltro === 'pendientes') data = data.filter(n=>!n.done);
+  else if(_notaFiltro === 'vence') data = data.filter(n=>n.vence && !n.done);
+  else if(['urgente','consulta','tarea','recordatorio'].includes(_notaFiltro))
+    data = data.filter(n=>n.tipo===_notaFiltro);
+
+  if(!data.length){
+    lista.innerHTML=`<div class="notas-vacio"><div class="ico">📝</div>No hay notas en esta categoría</div>`;
+    return;
+  }
+
+  const tipoLbl = {tarea:'📋 Tarea', consulta:'❓ Consulta', urgente:'🔴 Urgente', recordatorio:'🔔 Recordatorio'};
+
+  lista.innerHTML = data.map(n=>{
+    const vl = venceLbl(n.vence);
+    const venceHtml = vl ? `<span class="nota-vence ${vl.cls}">${vl.txt}</span>` : '';
+    return `<div class="nota-item ${n.done?'done':''}">
+      <div class="nota-check ${n.done?'checked':''}" onclick="toggleNota(${n.id})"></div>
+      <div class="nota-body">
+        <div class="nota-texto">${n.texto}</div>
+        <div class="nota-meta">
+          <span class="nota-tag ${n.tipo}">${tipoLbl[n.tipo]||n.tipo}</span>
+          <span class="nota-fecha">${n.fecha}</span>
+          ${venceHtml}
+        </div>
+      </div>
+      <div class="nota-actions">
+        <button class="btn-sm btn-sm-danger" onclick="eliminarNota(${n.id})">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function saveNotas(){
+  try{
+    if(window._fbReady) await window._fbSave({inv, rubros, unidades, filas, notas, ts: Date.now()});
+  }catch(e){ console.error('saveNotas error',e); }
 }
 
 </script>
