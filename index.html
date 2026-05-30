@@ -132,8 +132,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex
 .sidebar-footer .fecha span{display:block;color:#8a8a7a;margin-top:2px;}
 
 /* MAIN */
-.main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
-.topbar{padding:1.5rem 2rem 0;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;}
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh;background:var(--bg);}
+.topbar{padding:1rem 2rem;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:.5px solid var(--border);}
 .page-title{font-size:21px;font-weight:600;letter-spacing:-.3px;}
 .page-sub{font-size:13px;color:var(--text-muted);margin-top:2px;}
 .content{padding:1.25rem 2rem 3rem;}
@@ -142,12 +142,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex
 
 /* METRICS */
 .metrics-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.25rem;}
-.mc{background:var(--bg-card);border:.5px solid var(--border);border-radius:12px;padding:.9rem 1.1rem;}
+.mc{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:.9rem 1.1rem;box-shadow:0 1px 4px rgba(0,0,0,.05);}
 .mc-lbl{font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);margin-bottom:5px;}
 .mc-val{font-size:26px;font-weight:600;font-family:var(--mono);line-height:1;}
-.mc-val.ok{color:var(--accent);}
-.mc-val.warn{color:var(--warn);}
-.mc-val.danger{color:var(--danger);}
+.mc-val.ok{color:#166534;}
+.mc-val.warn{color:#92400e;}
+.mc-val.danger{color:#991b1b;}
 
 /* CONTROLS */
 .sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem;flex-wrap:wrap;gap:.75rem;}
@@ -155,15 +155,49 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex
 .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
 .srch{position:relative;}
 .srch svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--text-muted);pointer-events:none;}
-.srch input{padding:7px 9px 7px 28px;font-size:13px;font-family:var(--font);border:.5px solid var(--border-dark);border-radius:8px;background:var(--bg-card);color:var(--text);width:210px;outline:none;}
-.srch input:focus{border-color:var(--accent);}
-select.flt{padding:7px 9px;font-size:13px;font-family:var(--font);border:.5px solid var(--border-dark);border-radius:8px;background:var(--bg-card);color:var(--text);outline:none;cursor:pointer;}
+.srch input{padding:7px 9px 7px 28px;font-size:13px;font-family:var(--font);border:1px solid var(--border-dark);border-radius:8px;background:var(--bg-card);color:var(--text);width:210px;outline:none;}
+.srch input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(45,106,79,.12);}
+select.flt{padding:7px 9px;font-size:13px;font-family:var(--font);border:1px solid var(--border-dark);border-radius:8px;background:var(--bg-card);color:var(--text);outline:none;cursor:pointer;}
+
+/* AUTOCOMPLETE */
+.ac-wrap{position:relative;}
+.ac-wrap input{width:100%;padding:9px 12px;font-size:13.5px;font-family:var(--font);border:1px solid var(--border-dark);border-radius:8px;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s;}
+.ac-wrap input:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(45,106,79,.12);}
+.ac-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg-card);border:1px solid var(--accent-border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:500;max-height:240px;overflow-y:auto;display:none;}
+.ac-dropdown.open{display:block;}
+.ac-item{padding:9px 13px;font-size:13px;cursor:pointer;border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.ac-item:last-child{border-bottom:none;}
+.ac-item:hover,.ac-item.selected{background:var(--accent-light);}
+.ac-item .ac-name{flex:1;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ac-item .ac-meta{font-size:11px;color:var(--text-muted);font-family:var(--mono);flex-shrink:0;}
+.ac-item .ac-freq{font-size:10px;background:var(--accent-light);color:var(--accent);padding:1px 6px;border-radius:10px;font-family:var(--mono);}
+
+/* DASHBOARD GALPON */
+.dash-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:1.5rem;}
+.dash-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:1.1rem 1.25rem;}
+.dash-card-title{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);margin-bottom:.85rem;display:flex;align-items:center;gap:6px;}
+.dash-card-title svg{width:13px;height:13px;}
+.dash-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:.5px solid var(--border);font-size:13px;}
+.dash-row:last-child{border-bottom:none;}
+.dash-row .dr-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;}
+.dash-row .dr-val{font-family:var(--mono);font-size:12.5px;font-weight:600;flex-shrink:0;margin-left:8px;}
+.dash-row .dr-val.ok{color:var(--accent);}
+.dash-row .dr-val.warn{color:var(--warn);}
+.dash-row .dr-val.danger{color:var(--danger);}
+.dash-empty{font-size:13px;color:var(--text-muted);text-align:center;padding:1.5rem 0;opacity:.7;}
+
+/* ALERTAS MAS VISIBLES */
+.alert-banner{background:#fde8e8;border:1.5px solid #e57373;border-radius:10px;padding:10px 15px;font-size:13px;font-weight:500;color:#7a1515;margin-bottom:1rem;display:none;}
+.alert-banner.show{display:flex;align-items:center;gap:8px;}
+.badge.ok{background:#d1fae5;color:#065f46;font-weight:600;}
+.badge.warn{background:#fef3c7;color:#92400e;font-weight:600;}
+.badge.danger{background:#fee2e2;color:#991b1b;font-weight:600;}
 
 /* TABLE */
 .tw{background:var(--bg-card);border:.5px solid var(--border);border-radius:12px;overflow:hidden;}
 .tw-scroll{overflow-y:auto;max-height:65vh;border-radius:12px;}
 table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;}
-thead th{background:#f9f8f5;padding:8px 11px;text-align:left;font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);border-bottom:.5px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:2;}
+thead th{background:#eeece6;padding:8px 11px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#4a4a3a;font-family:var(--mono);border-bottom:1px solid var(--border-dark);white-space:nowrap;position:sticky;top:0;z-index:2;}
 tbody td{padding:8px 11px;border-bottom:.5px solid var(--border);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 tbody tr:last-child td{border-bottom:none;}
 tbody tr:hover td{background:#fafaf8;}
@@ -234,7 +268,7 @@ tbody tr:hover td{background:#fafaf8;}
 .form-card{background:var(--bg-card);border:.5px solid var(--border);border-radius:12px;padding:1.5rem;max-width:560px;}
 .fg{display:flex;flex-direction:column;gap:4px;margin-bottom:11px;}
 .fg label{font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);}
-.fg input,.fg select{padding:9px 12px;font-size:13.5px;font-family:var(--font);border:.5px solid var(--border-dark);border-radius:8px;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s;width:100%;}
+.fg input,.fg select{padding:9px 12px;font-size:13.5px;font-family:var(--font);border:1px solid var(--border-dark);border-radius:8px;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s;width:100%;}
 .fg input:focus,.fg select:focus{border-color:var(--accent);background:#fff;}
 .fg-row{display:flex;gap:11px;}
 .preview-box{display:none;border-radius:8px;padding:10px 13px;font-size:13px;margin-bottom:13px;line-height:1.6;}
@@ -372,6 +406,10 @@ tbody tr:hover td{background:#fafaf8;}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
       Configuración
     </button>
+    <button class="nav-btn" onclick="showTab('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Resumen galpón
+    </button>
   </div>
   <div class="sync-wrap">
     <div class="sync-status loading" id="sync-status">
@@ -447,7 +485,13 @@ tbody tr:hover td{background:#fafaf8;}
     <div class="topbar"><div><div class="page-title">Registrar movimiento</div><div class="page-sub">Se guarda en Firebase automáticamente</div></div></div>
     <div class="content">
       <div class="form-card">
-        <div class="fg"><label>Producto</label><select id="mv-producto" onchange="updatePreview()"></select></div>
+        <div class="fg"><label>Producto</label>
+          <div class="ac-wrap">
+            <input type="text" id="mv-producto-input" placeholder="Buscar producto..." autocomplete="off" oninput="updatePreview()">
+            <div class="ac-dropdown" id="ac-mv-prod"></div>
+          </div>
+          <input type="hidden" id="mv-producto" value="">
+        </div>
         <div class="fg-row">
           <div class="fg" style="flex:1"><label>Tipo</label>
             <select id="mv-tipo" onchange="updatePreview()">
@@ -666,6 +710,47 @@ tbody tr:hover td{background:#fafaf8;}
     </div>
   </div>
 
+
+  <!-- DASHBOARD GALPÓN -->
+  <div id="tab-dashboard" class="tab-content">
+    <div class="topbar">
+      <div><div class="page-title">Resumen galpón</div><div class="page-sub">Estado general · alertas · productos más usados</div></div>
+    </div>
+    <div class="content">
+      <div class="dash-metrics" id="dash-metrics"></div>
+      <div class="dash-grid">
+        <div class="dash-card">
+          <div class="dash-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Stock crítico / bajo
+          </div>
+          <div id="dash-critico"></div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Productos más utilizados
+          </div>
+          <div id="dash-top-usados"></div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Vencimientos próximos (≤60 días)
+          </div>
+          <div id="dash-vencimientos"></div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Sin movimiento hace +30 días
+          </div>
+          <div id="dash-sin-mov"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <!-- MODAL VENCIMIENTOS MASIVOS -->
@@ -701,7 +786,12 @@ tbody tr:hover td{background:#fafaf8;}
     <div class="modal-title" id="fi-modal-title">Agregar producto</div>
     <div class="modal-sub">Completá los datos del producto en esta fila</div>
     <div class="fg-row">
-      <div class="fg" style="flex:2"><label>Producto</label><input type="text" id="fi-prod" placeholder="Ej: Glifosato Full II Sigma"></div>
+      <div class="fg" style="flex:2"><label>Producto</label>
+        <div class="ac-wrap">
+          <input type="text" id="fi-prod" placeholder="Ej: Glifosato Full II Sigma" autocomplete="off">
+          <div class="ac-dropdown" id="ac-fi-prod"></div>
+        </div>
+      </div>
       <div class="fg" style="flex:1"><label>Tipo</label>
         <select id="fi-tipo">
           <option value="liquido">🧪 Líquido</option>
@@ -1136,9 +1226,14 @@ async function guardarDetalle(){
 
 // ── MOVIMIENTO ─────────────────────────────────────────────
 function populateProductoSelect(){
-  const sorted=[...inv].sort((a,b)=>a.nombre.localeCompare(b.nombre));
-  document.getElementById('mv-producto').innerHTML=sorted.map(p=>`<option value="${p.id}">${p.nombre} (físico: ${fmt(p.fisico)})</option>`).join('');
+  // mv-producto is now a hidden input fed by autocomplete
   populateMvFilaSelect();
+  // Re-init autocomplete in case inv changed
+  const inp=document.getElementById('mv-producto-input');
+  if(inp&&inp.value){
+    const p=inv.find(x=>x.nombre===inp.value);
+    document.getElementById('mv-producto').value=p?p.id:'';
+  }
 }
 function populateMvFilaSelect(){
   const sel=document.getElementById('mv-fila');
@@ -1267,6 +1362,10 @@ async function registrarMovimiento(){
   showToast('✓ Movimiento registrado'+(filaLabel?' · '+filaLabel:''));
 }
 function limpiarForm(){
+  const mpi=document.getElementById('mv-producto-input');
+  if(mpi)mpi.value='';
+  const mp=document.getElementById('mv-producto');
+  if(mp)mp.value='';
   document.getElementById('mv-cantidad').value='';
   document.getElementById('mv-motivo').value='';
   document.getElementById('mv-preview').className='preview-box';
@@ -1816,12 +1915,13 @@ function showTab(tab){
   document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(btn=>btn.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
-  document.querySelectorAll('.nav-btn')[['resumen','movimiento','historial','filas','config'].indexOf(tab)].classList.add('active');
+  document.querySelectorAll('.nav-btn')[['resumen','movimiento','historial','filas','config','dashboard'].indexOf(tab)].classList.add('active');
   if(tab==='historial')renderHistorial();
   if(tab==='config'){renderRubros();renderUnidades();renderConfigList();populateRubroSelects();populateCfgFilaSel();populateCfgUnidadSel();}
   if(tab==='filas')renderFilas();
   if(tab==='resumen')renderResumen();
   if(tab==='movimiento'){populateMvFilaSelect();renderResumenMetrics();}
+  if(tab==='dashboard')renderDashboard();
 }
 
 // ── FILAS DEL GALPÓN ───────────────────────────────────────
@@ -2478,6 +2578,13 @@ function exportarBackup(){
   renderRubros();renderConfigList();populateRubroSelects();
   renderResumen();
   document.getElementById('loading-screen').classList.add('hidden');
+  initAllAutocompletes();
+  // autocomplete mv-producto
+  initAutocomplete('mv-producto-input','ac-mv-prod', ()=>inv.map(p=>p.nombre), (val)=>{
+    const p=inv.find(x=>x.nombre===val);
+    document.getElementById('mv-producto').value=p?p.id:'';
+    updatePreview();
+  });
   // Auto-sync cada 60 seg para ver cambios de Fede
   setInterval(async()=>{
     await fetchData();
@@ -2487,6 +2594,237 @@ function exportarBackup(){
     if(tab&&tab.id==='tab-filas')renderFilas();
   }, 60000);
 })();
+
+// ── AUTOCOMPLETAR ──────────────────────────────────────────
+// Cuenta frecuencia de uso de cada producto desde historial
+function getFreqMap(){
+  const map={};
+  hist.forEach(h=>{
+    const k=(h.producto||h.prod||'').toUpperCase();
+    map[k]=(map[k]||0)+1;
+  });
+  return map;
+}
+
+function acGetCandidatos(query, sourceList){
+  const q=query.trim().toLowerCase();
+  const freq=getFreqMap();
+  if(!q) return [];
+  const matches = sourceList.filter(name=>{
+    return name.toLowerCase().includes(q);
+  });
+  // Sort: frecuencia desc, luego empieza-con primero, luego alfa
+  matches.sort((a,b)=>{
+    const fa=freq[a.toUpperCase()]||0, fb=freq[b.toUpperCase()]||0;
+    if(fb!==fa) return fb-fa;
+    const as=a.toLowerCase().startsWith(q)?0:1, bs=b.toLowerCase().startsWith(q)?0:1;
+    if(as!==bs) return as-bs;
+    return a.localeCompare(b);
+  });
+  return matches.slice(0,10);
+}
+
+function initAutocomplete(inputId, dropId, sourceListFn, onSelect){
+  const input=document.getElementById(inputId);
+  const drop=document.getElementById(dropId);
+  if(!input||!drop) return;
+  let selIdx=-1;
+
+  function render(items){
+    if(!items.length){drop.classList.remove('open');return;}
+    const freq=getFreqMap();
+    drop.innerHTML=items.map((name,i)=>{
+      const f=freq[name.toUpperCase()]||0;
+      const freqBadge=f>0?`<span class="ac-freq">${f}x</span>`:'';
+      return `<div class="ac-item" data-val="${name}" data-idx="${i}">
+        <span class="ac-name">${name}</span>${freqBadge}
+      </div>`;
+    }).join('');
+    drop.classList.add('open');
+    selIdx=-1;
+    drop.querySelectorAll('.ac-item').forEach(el=>{
+      el.addEventListener('mousedown',e=>{
+        e.preventDefault();
+        select(el.dataset.val);
+      });
+    });
+  }
+
+  function select(val){
+    input.value=val;
+    drop.classList.remove('open');
+    selIdx=-1;
+    if(onSelect) onSelect(val);
+  }
+
+  input.addEventListener('input',()=>{
+    const items=acGetCandidatos(input.value, sourceListFn());
+    render(items);
+  });
+
+  input.addEventListener('keydown',e=>{
+    const items=drop.querySelectorAll('.ac-item');
+    if(e.key==='ArrowDown'){e.preventDefault();selIdx=Math.min(selIdx+1,items.length-1);}
+    else if(e.key==='ArrowUp'){e.preventDefault();selIdx=Math.max(selIdx-1,0);}
+    else if(e.key==='Enter'&&selIdx>=0){e.preventDefault();select(items[selIdx].dataset.val);return;}
+    else if(e.key==='Escape'){drop.classList.remove('open');return;}
+    items.forEach((el,i)=>el.classList.toggle('selected',i===selIdx));
+    if(selIdx>=0) items[selIdx].scrollIntoView({block:'nearest'});
+  });
+
+  input.addEventListener('blur',()=>setTimeout(()=>drop.classList.remove('open'),150));
+  input.addEventListener('focus',()=>{
+    if(input.value.trim()) {
+      const items=acGetCandidatos(input.value, sourceListFn());
+      render(items);
+    }
+  });
+}
+
+function getProdNames(){
+  return [...new Set([
+    ...filas.flatMap(f=>f.items.map(i=>i.prod).filter(Boolean)),
+    ...inv.map(p=>p.nombre)
+  ])].sort();
+}
+
+// Inicializar autocompletes cuando los modales/tabs abren
+function initAllAutocompletes(){
+  // fi-prod en modal item fila
+  initAutocomplete('fi-prod','ac-fi-prod', getProdNames, (val)=>{
+    // auto-completar tipo si es conocido
+    const p=inv.find(x=>x.nombre.toUpperCase()===val.toUpperCase());
+    if(p){
+      const tipoEl=document.getElementById('fi-tipo');
+      // intentar mapear rubro a tipo
+      const rubro=(p.rubro||'').toLowerCase();
+      if(rubro.includes('semilla')) tipoEl.value='semilla';
+      else if(rubro.includes('fertiliz')||rubro.includes('bioestim')) tipoEl.value='liquido';
+      else tipoEl.value='liquido';
+    }
+  });
+}
+
+// ── DASHBOARD GALPÓN ──────────────────────────────────────
+function renderDashboard(){
+  // Métricas top
+  const resumen = calcResumen();
+  const totalProds = resumen.length;
+  const sinFecha = resumen.filter(d=>!d.vencimientos.length).length;
+  const proxVenc = resumen.filter(d=>{
+    return d.vencimientos.some(v=>{
+      try{const diff=(new Date(v.fecha)-new Date())/(1000*60*60*24); return diff<=30&&diff>=0;}catch(e){return false;}
+    });
+  }).length;
+
+  // Contar movimientos por producto (entradas+salidas) en los últimos 90 días
+  const ahora=Date.now();
+  const movCount={};
+  hist.forEach(h=>{
+    const prod=(h.producto||'').trim();
+    if(!prod)return;
+    // parsear fecha - formato "DD/MM/YYYY HH:MM"
+    try{
+      const parts=h.fecha.split(' ')[0].split('/');
+      const d=new Date(+parts[2],+parts[1]-1,+parts[0]);
+      if((ahora-d.getTime())/(1000*60*60*24)<=90){
+        movCount[prod]=(movCount[prod]||0)+1;
+      }
+    }catch(e){}
+  });
+
+  // Métricas superiores
+  const dangerCount = resumen.filter(d=>d.total<=0).length;
+  const warnCount = resumen.filter(d=>d.total>0&&d.total<=20).length;
+  document.getElementById('dash-metrics').innerHTML=`
+    <div class="mc"><div class="mc-lbl">Total productos</div><div class="mc-val">${totalProds}</div></div>
+    <div class="mc"><div class="mc-lbl">Sin stock</div><div class="mc-val danger">${dangerCount}</div></div>
+    <div class="mc"><div class="mc-lbl">Stock bajo</div><div class="mc-val warn">${warnCount}</div></div>
+    <div class="mc"><div class="mc-lbl">Vencen en ≤30 días</div><div class="mc-val ${proxVenc>0?'danger':'ok'}">${proxVenc}</div></div>
+  `;
+
+  // Stock crítico / bajo
+  const criticos = resumen.filter(d=>d.total<=20).sort((a,b)=>a.total-b.total);
+  const elCritico=document.getElementById('dash-critico');
+  if(!criticos.length){
+    elCritico.innerHTML='<div class="dash-empty">✅ Todo el stock está en niveles normales</div>';
+  } else {
+    elCritico.innerHTML=criticos.slice(0,8).map(d=>{
+      const cls=d.total<=0?'danger':'warn';
+      return `<div class="dash-row">
+        <span class="dr-name" title="${d.prod}">${d.prod}</span>
+        <span class="dr-val ${cls}">${fmt(d.total)} ${d.unidad}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Top usados (últimos 90 días)
+  const topUsados=Object.entries(movCount)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,8);
+  const elTop=document.getElementById('dash-top-usados');
+  if(!topUsados.length){
+    elTop.innerHTML='<div class="dash-empty">Sin movimientos en los últimos 90 días</div>';
+  } else {
+    elTop.innerHTML=topUsados.map(([prod,count])=>`
+      <div class="dash-row">
+        <span class="dr-name" title="${prod}">${prod}</span>
+        <span class="dr-val ok">${count} mov.</span>
+      </div>`).join('');
+  }
+
+  // Vencimientos próximos ≤60 días
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const vencProximos=[];
+  filas.forEach(f=>{
+    f.items.forEach(item=>{
+      if(!item.venc) return;
+      try{
+        const d=new Date(item.venc);
+        const dias=Math.round((d-hoy)/(1000*60*60*24));
+        if(dias<=60) vencProximos.push({prod:item.prod, fila:f.nombre, dias, fecha:item.venc, total:item.total, unidad:item.unidad});
+      }catch(e){}
+    });
+  });
+  vencProximos.sort((a,b)=>a.dias-b.dias);
+  const elVenc=document.getElementById('dash-vencimientos');
+  if(!vencProximos.length){
+    elVenc.innerHTML='<div class="dash-empty">Sin vencimientos en los próximos 60 días</div>';
+  } else {
+    elVenc.innerHTML=vencProximos.slice(0,8).map(v=>{
+      const cls=v.dias<=7?'danger':v.dias<=30?'warn':'ok';
+      const lbl=v.dias<=0?'Vencido':v.dias===1?'Mañana':`${v.dias}d`;
+      return `<div class="dash-row">
+        <span class="dr-name" title="${v.prod} · ${v.fila}">${v.prod} <span style="font-size:11px;color:var(--text-muted);font-weight:400;">${v.fila}</span></span>
+        <span class="dr-val ${cls}">${lbl}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Sin movimiento hace +30 días
+  const movsRecientes=new Set();
+  hist.forEach(h=>{
+    try{
+      const parts=h.fecha.split(' ')[0].split('/');
+      const d=new Date(+parts[2],+parts[1]-1,+parts[0]);
+      if((ahora-d.getTime())/(1000*60*60*24)<=30){
+        movsRecientes.add((h.producto||'').trim().toUpperCase());
+      }
+    }catch(e){}
+  });
+  const sinMov=resumen.filter(d=>d.total>0&&!movsRecientes.has(d.prod.trim().toUpperCase()));
+  const elSinMov=document.getElementById('dash-sin-mov');
+  if(!sinMov.length){
+    elSinMov.innerHTML='<div class="dash-empty">Todos los productos tuvieron movimientos recientes</div>';
+  } else {
+    elSinMov.innerHTML=sinMov.slice(0,8).map(d=>`
+      <div class="dash-row">
+        <span class="dr-name" title="${d.prod}">${d.prod}</span>
+        <span class="dr-val warn">${fmt(d.total)} ${d.unidad}</span>
+      </div>`).join('');
+  }
+}
+
 </script>
 </body>
 </html>
