@@ -382,7 +382,7 @@ tbody tr:hover td{background:#fafaf8;}
       ☁ Sincronizar ahora
     </button>
   </div>
-  <div style="padding:.5rem 1rem;"><button class="btn-sync" onclick="exportarBackup()" style="color:#8a8a7a;font-size:11px;">💾 Exportar backup</button></div>
+
   <div class="sidebar-footer">
     <div class="fecha">Último guardado<span id="ultima-sync">—</span></div>
   </div>
@@ -590,9 +590,6 @@ tbody tr:hover td{background:#fafaf8;}
     <div class="topbar">
       <div><div class="page-title">Filas del galpón</div><div class="page-sub">Organización física del depósito · con semáforo, alertas de vencimiento y acciones rápidas</div></div>
       <div style="display:flex;gap:8px;">
-        <button class="btn-export" id="btn-patch-stock" onclick="aplicarPatchStock()" style="color:var(--accent);border-color:var(--accent-border);font-weight:600;">
-          ↺ Actualizar stock 23/05
-        </button>
         <button class="btn-export" onclick="abrirVencBulk()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           Cargar vencimientos
@@ -952,8 +949,8 @@ async function fetchData(){
       hist     = histData || [];
       rubros   = data.rubros   && data.rubros.length>0   ? data.rubros   : [...BASE_RUBROS];
       unidades = data.unidades && data.unidades.length>0 ? data.unidades : [...BASE_UNIDADES];
-      // Siempre priorizar Firebase; SAVED_FILAS solo como fallback si Firebase no tiene datos
-      filas    = (data.filas && data.filas.length>0) ? data.filas : (SAVED_FILAS && SAVED_FILAS.length>0 ? JSON.parse(JSON.stringify(SAVED_FILAS)) : JSON.parse(JSON.stringify(FILAS_BASE)));
+      // Use SAVED_FILAS if embedded (manual override), otherwise use Firebase
+      filas    = (SAVED_FILAS && SAVED_FILAS.length>0) ? JSON.parse(JSON.stringify(SAVED_FILAS)) : (data.filas && data.filas.length>0 ? data.filas : JSON.parse(JSON.stringify(FILAS_BASE)));
       setSyncStatus('ok','Conectado · '+hist.length+' mov.');
     } else {
       // Primera vez — subir datos base
@@ -1793,10 +1790,19 @@ function renderResumen(){
 
 function exportarResumenCSV(){
   const data = calcResumen();
-  const h = ['Producto','Tipo','Total','Unidad','Filas','Próximo vencimiento','Fila vencimiento'];
+  const h = ['Producto','Tipo','Total','Unidad','Filas','Desglose por fila','Próximo vencimiento','Fila vencimiento'];
   const rows = data.map(d=>{
+    // Armar desglose: "Fila 1: 302,5 L | Fila 4: 302,5 L"
+    const desglose = filas
+      .map(f=>{
+        const items = f.items.filter(i=>i.prod&&i.prod.trim().toUpperCase()===d.prod.trim().toUpperCase()&&i.unidad===d.unidad);
+        const total = items.reduce((s,i)=>s+(i.total||0),0);
+        return total>0 ? f.nombre+': '+fmt(total)+' '+d.unidad : null;
+      })
+      .filter(Boolean)
+      .join(' | ');
     const v = d.vencimientos[0];
-    return [d.prod, d.tipo, d.total, d.unidad, d.filas.join(' / '),
+    return [d.prod, d.tipo, d.total, d.unidad, d.filas.join(' / '), desglose,
       v?v.fecha:'', v?v.fila:''];
   });
   const csv = [h,...rows].map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
