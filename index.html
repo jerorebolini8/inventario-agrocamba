@@ -1138,14 +1138,10 @@ async function fetchData(){
       notas    = data.notas && data.notas.length>0 ? data.notas : [];
       setSyncStatus('ok','Conectado · '+hist.length+' mov.');
     } else {
-      // Primera vez — subir datos base
-      inv      = JSON.parse(JSON.stringify(BASE));
-      hist     = [];
-      rubros   = [...BASE_RUBROS];
-      unidades = [...BASE_UNIDADES];
-      filas    = JSON.parse(JSON.stringify(FILAS_BASE));
-      setSyncStatus('ok','Datos iniciales cargados');
-      await saveAll();
+      // Firebase no devolvió datos — NO sobreescribir, mostrar error
+      setSyncStatus('error','Sin datos en Firebase');
+      showToast('⚠ No se encontraron datos en Firebase. Contactá al administrador.');
+      return false;
     }
     setUltimaSync();
     return true;
@@ -2023,122 +2019,7 @@ function showTab(tab){
 // filas: [{id, nombre, color, items:[{prod, presentacion, cantidad, total, unidad, notas}]}]
 const FILA_COLORS=['#2d6a4f','#b45309','#9b1c1c','#1a5276','#4a235a','#7e4000','#0c5460','#155724','#7d6608','#512b2b'];
 
-const FILAS_BASE=[
-  {id:'f1',nombre:'Fila 1',color:'#2d6a4f',items:[
-    {prod:'Vibrance Gold X200L',presentacion:'Bidón 200L',cantidad:'1 bidón',total:200,unidad:'L',notas:''},
-    {prod:'Barova Gold',presentacion:'Caja 4x5L',cantidad:'2 cajas',total:40,unidad:'L',notas:''},
-    {prod:'Voleris',presentacion:'Bidón 20L',cantidad:'32 bidones',total:640,unidad:'L',notas:'Syngenta'},
-    {prod:'Acuron Pack',presentacion:'Caja 4x5L',cantidad:'20 cajas',total:400,unidad:'L',notas:''},
-    {prod:'Miravis Duo',presentacion:'Caja 4x5L',cantidad:'45 cajas',total:900,unidad:'L',notas:''},
-    {prod:'Festio Triple Pack',presentacion:'Caja 4x4,5L',cantidad:'6 cajas',total:108,unidad:'L',notas:''},
-    {prod:'Vibrance Gold 4x5L',presentacion:'Caja 4x5L + bidones 5L',cantidad:'31 cajas + 2 bidones',total:630,unidad:'L',notas:''},
-    {prod:'Engeo S',presentacion:'Caja 4x5L + bidón 5L',cantidad:'15 cajas + 1 bidón',total:305,unidad:'L',notas:''},
-    {prod:'Zeek',presentacion:'Caja 4x5L',cantidad:'4 cajas + 2 bidones',total:90,unidad:'L',notas:''},
-    {prod:'Flontus',presentacion:'Bidón 6,5L',cantidad:'1 bidón',total:6.5,unidad:'L',notas:''},
-    {prod:'Banvel',presentacion:'Bidón 5L',cantidad:'1 bidón',total:5,unidad:'L',notas:''},
-    {prod:'Cruiser Pack HC',presentacion:'Cajas mix',cantidad:'13+1 cajas',total:null,unidad:'u',notas:'Pendiente calcular litros'},
-    {prod:'Amistar Xtra',presentacion:'Bidón 5L',cantidad:'7 bidones',total:35,unidad:'L',notas:''},
-    {prod:'Mazen Ace 4x5L',presentacion:'Bidón 5L',cantidad:'8 bidones',total:40,unidad:'L',notas:''},
-    {prod:'Chikara',presentacion:'Bidón 5L',cantidad:'2 bidones',total:10,unidad:'L',notas:''},
-    {prod:'Gesaprim 90 WDGT',presentacion:'Bolsa 10kg',cantidad:'7 bolsas',total:70,unidad:'kg',notas:''},
-  ]},
-  {id:'f2',nombre:'Fila 2',color:'#b45309',items:[
-    {prod:'Glifosato Full II Sigma',presentacion:'Bidón 20L',cantidad:'48 bidones',total:960,unidad:'L',notas:''},
-    {prod:'Sulfosato Touchdown Max',presentacion:'Pallet',cantidad:'2 pallets',total:null,unidad:'L',notas:'Verificar unidades por pallet'},
-    {prod:'Vibrance Integral 4x5L',presentacion:'Caja 4x5L',cantidad:'2 cajas',total:40,unidad:'L',notas:''},
-    {prod:'Festio Triple Pack',presentacion:'Caja 4x4,5L',cantidad:'19 cajas',total:342,unidad:'L',notas:''},
-    {prod:'Karate Zeon',presentacion:'Bidón 1L',cantidad:'5 bidones',total:5,unidad:'L',notas:''},
-    {prod:'Virantra 4x5L',presentacion:'Caja 4x5L',cantidad:'6 cajas',total:120,unidad:'L',notas:''},
-    {prod:'Stimwise Verde',presentacion:'Bidón 20L',cantidad:'11 bidones',total:220,unidad:'L',notas:'7 orig. + 4 de fila 4'},
-    {prod:'Stimwise Boro (blanco)',presentacion:'Bidón 20L',cantidad:'13 bidones',total:260,unidad:'L',notas:''},
-    {prod:'Bolsas maíz',presentacion:'Bolsa',cantidad:'2 bolsas',total:2,unidad:'u',notas:'Verificar kg/bolsa'},
-    {prod:'Metsulfuron',presentacion:'Sobre 100gr',cantidad:'4 sobres',total:400,unidad:'gr',notas:''},
-    {prod:'Dagger 60 WG',presentacion:'Sobre 100gr',cantidad:'1 sobre',total:100,unidad:'gr',notas:''},
-    {prod:'Tribu 48 SG',presentacion:'Bidón 20L',cantidad:'4 bidones',total:80,unidad:'L',notas:''},
-    {prod:'Sunset 48 SC',presentacion:'Bidón 20L',cantidad:'2 bidones',total:40,unidad:'L',notas:''},
-    {prod:'Tekove',presentacion:'Bidón 20L',cantidad:'20 bidones',total:400,unidad:'L',notas:''},
-  ]},
-  {id:'f3',nombre:'Fila 3',color:'#1a5276',items:[
-    {prod:'Glifosato',presentacion:'Pallet 48x20L',cantidad:'3 pallets',total:2880,unidad:'L',notas:''},
-    {prod:'Voleris',presentacion:'Bidón 20L',cantidad:'65 bidones',total:1300,unidad:'L',notas:''},
-    {prod:'Sulfato',presentacion:'Bidón 20L',cantidad:'26 bidones',total:520,unidad:'L',notas:''},
-    {prod:'Hydrop 10',presentacion:'Caja 12x1L / Caja 6x1L',cantidad:'9 cajas 12x1 + 1 caja 6x1',total:114,unidad:'L',notas:''},
-    {prod:'Hydrop Oil',presentacion:'Bidón 10L',cantidad:'4 bidones',total:40,unidad:'L',notas:''},
-    {prod:'Hydrop Mix',presentacion:'Bidón 10L',cantidad:'6 bidones',total:60,unidad:'L',notas:''},
-    {prod:'Hydrop 360',presentacion:'Bidón 10L',cantidad:'5 bidones',total:50,unidad:'L',notas:''},
-    {prod:'Moddus',presentacion:'Caja 4x5L / Caja 3x5L',cantidad:'9 cajas 4x5 + 1 caja 3x5',total:195,unidad:'L',notas:''},
-  ]},
-  {id:'f4',nombre:'Fila 4',color:'#9b1c1c',items:[
-    {prod:'Glifosato',presentacion:'Pallet 48x20L',cantidad:'1 pallet',total:960,unidad:'L',notas:''},
-    {prod:'Dual Gold',presentacion:'Pallet 600L',cantidad:'2 pallets',total:1200,unidad:'L',notas:''},
-    {prod:'Banvel',presentacion:'Pallet + cajas 4x5L',cantidad:'1 pallet + 10 cajas',total:200,unidad:'L',notas:'Verificar unidades pallet'},
-    {prod:'Enelan',presentacion:'Pallet caja 4x5L',cantidad:'1 pallet completo',total:null,unidad:'L',notas:'Verificar unidades pallet'},
-    {prod:'Gesaprim 90 WDGT',presentacion:'Bolsa 10kg',cantidad:'4 pallets × 55 bolsas',total:2200,unidad:'kg',notas:''},
-    {prod:'Miravis Triple Pack',presentacion:'Caja 4x4,5L',cantidad:'7 cajas + 2 bidones',total:135,unidad:'L',notas:''},
-    {prod:'Karate Zeon',presentacion:'Caja 12x1L',cantidad:'5 cajas',total:60,unidad:'L',notas:''},
-    {prod:'Vesdua',presentacion:'Caja 4x5L',cantidad:'7 cajas',total:140,unidad:'L',notas:''},
-    {prod:'Clearsol DF',presentacion:'—',cantidad:'—',total:null,unidad:'—',notas:'Pendiente — dato faltante'},
-  ]},
-  {id:'f5',nombre:'Fila 5',color:'#4a235a',items:[
-    {prod:'Sulfosato Touchdown (Sulfato)',presentacion:'Pallet 32x20L',cantidad:'7 pallets + 1 de 28x20L',total:4960,unidad:'L',notas:''},
-    {prod:'Voleris',presentacion:'Bidón 20L',cantidad:'80 bidones',total:1600,unidad:'L',notas:''},
-    {prod:'Peak Pack L',presentacion:'Pallet cajas',cantidad:'39 + 34 cajas + 1 caja abierta',total:73,unidad:'cajas',notas:'Caja abierta: 2x1L + 4x100gr'},
-  ]},
-  {id:'f6',nombre:'Fila 6',color:'#7e4000',items:[
-    {prod:'Wuxal Combi MN',presentacion:'Bidón 10L',cantidad:'18 bidones',total:180,unidad:'L',notas:''},
-    {prod:'Amistar Xtra',presentacion:'Caja 4x5L',cantidad:'13 cajas',total:260,unidad:'L',notas:''},
-    {prod:'Semillas',presentacion:'—',cantidad:'—',total:null,unidad:'—',notas:'Pendiente — se cuenta al final'},
-  ]},
-  {id:'f7',nombre:'Fila 7',color:'#0c5460',items:[
-    {prod:'Semillas',presentacion:'—',cantidad:'—',total:null,unidad:'—',notas:'Pendiente — se cuenta al final'},
-  ]},
-  {id:'f8',nombre:'Fila 8',color:'#155724',items:[
-    {prod:'Glifosato',presentacion:'Pallet 48x20L',cantidad:'2 pallets',total:1920,unidad:'L',notas:''},
-    {prod:'Goten (Atrazina)',presentacion:'Bolsa 10kg',cantidad:'2 pallets × 55 + 3 bolsas',total:1130,unidad:'kg',notas:''},
-    {prod:'Bioultimate',presentacion:'Bidón 20L',cantidad:'14 bidones',total:280,unidad:'L',notas:''},
-  ]},
-  {id:'f9',nombre:'Fila 9',color:'#512b2b',items:[
-    {prod:'Acuron Pack',presentacion:'Caja 4x5L',cantidad:'30 cajas',total:600,unidad:'L',notas:''},
-    {prod:'Voleris',presentacion:'Bidón 20L',cantidad:'32 bidones',total:640,unidad:'L',notas:''},
-    {prod:'Wuxal Combi MN',presentacion:'Bidón 10L',cantidad:'50 bidones',total:500,unidad:'L',notas:''},
-    {prod:'Dual Gold',presentacion:'Caja 4x5L',cantidad:'16 cajas',total:320,unidad:'L',notas:''},
-    {prod:'Flontus',presentacion:'Bidón 6,5L',cantidad:'1 bidón',total:6.5,unidad:'L',notas:''},
-    {prod:'Karate Zeon',presentacion:'Caja 12x1L / Caja 8x1L',cantidad:'6 cajas + 1 caja 8x1',total:80,unidad:'L',notas:''},
-    {prod:'Virantra 4x5L',presentacion:'Caja 4x5L',cantidad:'2 cajas',total:40,unidad:'L',notas:''},
-    {prod:'Megafol',presentacion:'Bidón 20L',cantidad:'30 bidones',total:600,unidad:'L',notas:''},
-    {prod:'Hydrop Oil',presentacion:'Bidón 10L',cantidad:'75 bidones',total:750,unidad:'L',notas:''},
-  ]},
-  {id:'f10',nombre:'Fila 10',color:'#7d6608',items:[
-    {prod:'Stimwise Verde',presentacion:'Bidón 20L',cantidad:'32 bidones',total:640,unidad:'L',notas:''},
-    {prod:'Curyom FitUV',presentacion:'Caja 10x1kg',cantidad:'2 cajas',total:20,unidad:'kg',notas:''},
-    {prod:'Nuvoxl',presentacion:'Bidón 20L',cantidad:'10 bidones',total:200,unidad:'L',notas:''},
-    {prod:'Virantra 4x5L',presentacion:'Cajas 4x5L + caja 2x5L',cantidad:'3 cajas + 1 caja 2x5',total:70,unidad:'L',notas:''},
-    {prod:'Axial Plus',presentacion:'Bidón 5L',cantidad:'3 bidones',total:15,unidad:'L',notas:''},
-    {prod:'Engeo S',presentacion:'Bidón 5L',cantidad:'2 bidones',total:10,unidad:'L',notas:''},
-    {prod:'Acuron Uno',presentacion:'Bidón 5L',cantidad:'1 bidón (roto)',total:null,unidad:'L',notas:'Roto — verificar si se descarta'},
-    {prod:'Cleto 24% EC',presentacion:'Bidón 20L',cantidad:'1 bidón',total:20,unidad:'L',notas:''},
-    {prod:'Cletodim Sigma',presentacion:'Bidón 20L',cantidad:'23 bidones',total:460,unidad:'L',notas:''},
-    {prod:'Traspect M 20L',presentacion:'Bidón 20L',cantidad:'56 bidones',total:1120,unidad:'L',notas:''},
-  ]},
-  {id:'f11',nombre:'Fila 11',color:'#2d6a4f',items:[
-    {prod:'Ampligo',presentacion:'Caja 12x1L + bidones 1L',cantidad:'2 cajas + 3 bidones',total:27,unidad:'L',notas:''},
-    {prod:'Enelan',presentacion:'Caja 4x5L + bidones 5L',cantidad:'3 cajas + 2 bidones',total:70,unidad:'L',notas:''},
-    {prod:'Megafol',presentacion:'Pallet 30x20L + bidones',cantidad:'3 pallets + 26 bidones',total:2320,unidad:'L',notas:''},
-    {prod:'Diflufenican 50 Sigma',presentacion:'Caja 4x5L + caja 3x5L',cantidad:'5 cajas + 1 caja 3x5',total:115,unidad:'L',notas:''},
-    {prod:'Acuron Uno',presentacion:'Bidón 5L',cantidad:'1 bidón',total:5,unidad:'L',notas:''},
-    {prod:'Reglone',presentacion:'Bidón 5L',cantidad:'2 bidones',total:10,unidad:'L',notas:''},
-    {prod:'Dicamba Sigma',presentacion:'Bidón 10L',cantidad:'38 bidones',total:380,unidad:'L',notas:''},
-    {prod:'Tuken SC',presentacion:'Bidón 5L',cantidad:'1 bidón',total:5,unidad:'L',notas:''},
-  ]},
-  {id:'f12',nombre:'Fila 12',color:'#b45309',items:[
-    {prod:'Sulfosato Touchdown Max',presentacion:'Pallet cajas 10kg',cantidad:'3 pallets completos',total:null,unidad:'kg',notas:'Cajas por pallet sin confirmar'},
-    {prod:'Glifosato (Sulfato)',presentacion:'Pallet 32x20L',cantidad:'2 pallets',total:1280,unidad:'L',notas:''},
-    {prod:'Stimwise Verde',presentacion:'Bidón 20L',cantidad:'3 bidones',total:60,unidad:'L',notas:''},
-    {prod:'Planter',presentacion:'Bidón 20L',cantidad:'8 bidones',total:160,unidad:'L',notas:''},
-    {prod:'Zarovia',presentacion:'Caja 4x5L',cantidad:'4 cajas',total:80,unidad:'L',notas:''},
-    {prod:'Sulfosato Touchdown Max',presentacion:'Bidón 10kg',cantidad:'23 bidones sueltos',total:230,unidad:'kg',notas:'Aparte de los 3 pallets'},
-  ]},
-];
+const FILAS_BASE=[]; // vaciado — Firebase es la única fuente de datos
 
 
 let filas=[];
