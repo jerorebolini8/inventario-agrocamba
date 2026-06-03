@@ -534,6 +534,8 @@ tbody tr:hover td{background:#fafaf8;}
           </div>
           <input type="hidden" id="mv-producto" value="">
         </div>
+        <div id="mv-prod-info" style="display:none;background:#f0f9f4;border:1px solid var(--accent-border);border-radius:10px;padding:10px 14px;margin-top:6px;font-size:13px;line-height:1.7;">
+        </div>
         <div class="fg-row">
           <div class="fg" style="flex:1"><label>Tipo</label>
             <select id="mv-tipo" onchange="updatePreview()">
@@ -1360,6 +1362,39 @@ function updatePreview(){
   const filaId=document.getElementById('mv-fila')?.value||'';
   const p=inv.find(x=>String(x.id)===String(id));
   const el=document.getElementById('mv-preview');
+  const infoEl=document.getElementById('mv-prod-info');
+
+  // Mostrar info del producto seleccionado
+  if(p && infoEl){
+    // Filas donde está este producto
+    const filasConProd=filas.filter(f=>f.items.some(i=>i.prod.trim().toUpperCase()===p.nombre.trim().toUpperCase()));
+    const filasNombres=filasConProd.map(f=>f.nombre).join(', ')||'Sin asignar';
+    // Último movimiento
+    const movsP=hist.filter(h=>(h.producto||'').trim().toUpperCase()===p.nombre.trim().toUpperCase());
+    let ultimoMov='Sin historial';
+    if(movsP.length){
+      try{
+        const parts=movsP[0].fecha.split(' ')[0].split('/');
+        const d=new Date(+parts[2],+parts[1]-1,+parts[0]);
+        const dias=Math.floor((Date.now()-d.getTime())/(1000*60*60*24));
+        ultimoMov=dias===0?'Hoy':dias===1?'Ayer':`hace ${dias} días`;
+      }catch(e){}
+    }
+    // Stock en filas
+    const stockFila=filasConProd.reduce((sum,f)=>{
+      return sum+f.items.filter(i=>i.prod.trim().toUpperCase()===p.nombre.trim().toUpperCase()).reduce((s,i)=>s+(i.total||0),0);
+    },0);
+    infoEl.style.display='block';
+    infoEl.innerHTML=`
+      <span style="font-weight:600;color:var(--accent);">${p.nombre}</span><br>
+      📦 <strong>Stock actual:</strong> ${fmt(stockFila||p.fisico)} ${filasConProd[0]?.items.find(i=>i.prod.trim().toUpperCase()===p.nombre.trim().toUpperCase())?.unidad||'L'} &nbsp;·&nbsp;
+      🏠 <strong>Filas:</strong> ${filasNombres} &nbsp;·&nbsp;
+      🕐 <strong>Último movimiento:</strong> ${ultimoMov}
+    `;
+  } else if(infoEl){
+    infoEl.style.display='none';
+  }
+
   if(!p||cant<=0){el.className='preview-box';updateMvFilaInfo();return;}
   const nuevo=tipo==='entrada'?p.fisico+cant:p.fisico-cant;
   // También mostrar impacto en fila si está seleccionada
@@ -1972,7 +2007,11 @@ function renderResumen(){
       <td style="font-size:11px;">${filasBadge}</td>
       <td>${vencHtml}</td>
       <td style="text-align:center;">
-        ${d.vencimientos.length>1?`<span style="font-size:10px;color:var(--text-muted);">${d.vencimientos.length} lotes</span>`:''}
+        ${(()=>{
+          if(d.total<=0) return '<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block;"></span><span style="font-size:11px;font-weight:600;color:#dc2626;">Sin stock</span></span>';
+          if(d.total<=20) return '<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#f97316;display:inline-block;"></span><span style="font-size:11px;font-weight:600;color:#f97316;">Bajo stock</span></span>';
+          return '<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#16a34a;display:inline-block;"></span><span style="font-size:11px;font-weight:600;color:#16a34a;">OK</span></span>';
+        })()}
       </td>
     </tr>`;
   }).join('');
@@ -2144,9 +2183,9 @@ function renderFilas(){
           <button class="btn-sm" onclick="editarNombreFila('${fila.id}')">Renombrar</button>
           <button class="btn-sm btn-sm-danger" onclick="eliminarFila('${fila.id}')">Eliminar</button>
         </div>
-        <div class="fila-chevron" id="chev-${fila.id}">▾</div>
+        <div class="fila-chevron" id="chev-${fila.id}">▸</div>
       </div>
-      <div class="fila-body" id="fbody-${fila.id}">
+      <div class="fila-body" id="fbody-${fila.id}" style="display:none;">
         <table class="fila-table">
           <thead><tr>
             <th style="width:26%">Producto</th>
@@ -2788,16 +2827,44 @@ function renderDashboard(){
       }
     }catch(e){}
   });
+  // Para cada producto sin movimiento, calcular cuántos días hace
+  const diasSinMov={};
+  resumen.forEach(d=>{
+    const prod=d.prod.trim().toUpperCase();
+    const movsProd=hist.filter(h=>(h.producto||'').trim().toUpperCase()===prod);
+    if(!movsProd.length){ diasSinMov[prod]=null; return; }
+    let maxTs=0;
+    movsProd.forEach(h=>{
+      try{
+        const parts=h.fecha.split(' ')[0].split('/');
+        const ts=new Date(+parts[2],+parts[1]-1,+parts[0]).getTime();
+        if(ts>maxTs) maxTs=ts;
+      }catch(e){}
+    });
+    diasSinMov[prod]=maxTs>0?Math.floor((ahora-maxTs)/(1000*60*60*24)):null;
+  });
+
   const sinMov=resumen.filter(d=>d.total>0&&!movsRecientes.has(d.prod.trim().toUpperCase()));
+  sinMov.sort((a,b)=>{
+    const da=diasSinMov[a.prod.trim().toUpperCase()]??9999;
+    const db=diasSinMov[b.prod.trim().toUpperCase()]??9999;
+    return db-da;
+  });
   const elSinMov=document.getElementById('dash-sin-mov');
   if(!sinMov.length){
     elSinMov.innerHTML='<div class="dash-empty">Todos los productos tuvieron movimientos recientes</div>';
   } else {
-    elSinMov.innerHTML=sinMov.slice(0,8).map(d=>`
-      <div class="dash-row">
+    elSinMov.innerHTML=sinMov.slice(0,10).map(d=>{
+      const dias=diasSinMov[d.prod.trim().toUpperCase()];
+      const diasLbl=dias===null?'Sin historial':dias===0?'Hoy':dias===1?'1 día':`${dias} días`;
+      return `<div class="dash-row">
         <span class="dr-name" title="${d.prod}">${d.prod}</span>
-        <span class="dr-val warn">${fmt(d.total)} ${d.unidad}</span>
-      </div>`).join('');
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+          <span class="dr-val warn">${fmt(d.total)} ${d.unidad}</span>
+          <span style="font-size:10px;color:var(--text-muted);font-family:var(--mono);">hace ${diasLbl}</span>
+        </div>
+      </div>`;
+    }).join('');
   }
 }
 
