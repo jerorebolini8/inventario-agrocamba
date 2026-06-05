@@ -377,29 +377,50 @@ tbody tr:hover td{background:#fafaf8;}
 
 /* NOTAS Y TAREAS */
 .nota-form{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.25rem;}
-.nota-lista{display:flex;flex-direction:column;gap:8px;}
-.nota-item{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:11px 15px;display:flex;align-items:flex-start;gap:11px;transition:box-shadow .15s;}
-.nota-item:hover{box-shadow:0 2px 10px rgba(0,0,0,.07);}
-.nota-item.done{opacity:.55;}
-.nota-item.done .nota-texto{text-decoration:line-through;color:var(--text-muted);}
-.nota-check{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border-dark);cursor:pointer;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
-.nota-check.checked{background:var(--accent);border-color:var(--accent);}
-.nota-check.checked::after{content:'✓';font-size:11px;color:#fff;font-weight:700;}
-.nota-body{flex:1;min-width:0;}
-.nota-texto{font-size:13.5px;font-weight:500;line-height:1.4;word-break:break-word;}
-.nota-meta{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;}
-.nota-fecha{font-size:11px;color:var(--text-muted);font-family:var(--mono);}
-.nota-tag{font-size:10.5px;padding:1px 8px;border-radius:10px;font-weight:500;}
+/* Barra de progreso */
+.notas-progreso-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1rem 1.5rem;margin-bottom:1.25rem;}
+.notas-progreso-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;font-size:13px;color:var(--text-muted);}
+.notas-progreso-header .np-pct{font-weight:700;font-family:var(--mono);color:var(--text);}
+.notas-progreso-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.notas-progreso-inner{height:100%;background:var(--accent);border-radius:3px;transition:width .3s;}
+/* Grupos */
+.notas-grupo{margin-bottom:1.25rem;}
+.notas-grupo-header{display:flex;align-items:center;justify-content:space-between;padding:6px 0 8px;cursor:pointer;user-select:none;}
+.notas-grupo-titulo{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;}
+.notas-grupo-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.notas-grupo-dot.pendiente{background:#f97316;}
+.notas-grupo-dot.en-curso{background:#3b82f6;}
+.notas-grupo-dot.completada{background:#16a34a;}
+.notas-grupo-count{font-size:11px;font-weight:700;background:var(--border);color:var(--text-muted);border-radius:10px;padding:1px 8px;font-family:var(--mono);}
+.notas-grupo-count.urgente{background:#fee2e2;color:#991b1b;}
+.notas-grupo-chevron{font-size:12px;color:var(--text-muted);}
+/* Tabla de tareas */
+.notas-tabla{width:100%;border-collapse:collapse;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:.5rem;}
+.notas-tabla thead th{background:#f9f8f5;padding:7px 12px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);border-bottom:1px solid var(--border);}
+.notas-tabla tbody tr{border-bottom:.5px solid var(--border);transition:background .1s;}
+.notas-tabla tbody tr:last-child{border-bottom:none;}
+.notas-tabla tbody tr:hover{background:#fafaf8;}
+.notas-tabla tbody tr.done-row td{opacity:.5;}
+.notas-tabla tbody tr.done-row .nt-texto{text-decoration:line-through;}
+.notas-tabla td{padding:9px 12px;font-size:13px;vertical-align:middle;}
+.nt-check-cell{width:36px;text-align:center;}
+.nt-check{width:18px;height:18px;border-radius:50%;border:2px solid var(--border-dark);cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;transition:all .15s;}
+.nt-check:hover{border-color:var(--accent);}
+.nt-check.checked{background:var(--accent);border-color:var(--accent);}
+.nt-check.checked::after{content:'✓';font-size:10px;color:#fff;font-weight:700;}
+.nt-texto{font-weight:500;line-height:1.4;}
+.nt-meta{display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap;}
+.nt-fecha{font-size:11px;color:var(--text-muted);font-family:var(--mono);display:flex;align-items:center;gap:3px;}
+.nota-tag{font-size:10.5px;padding:2px 9px;border-radius:10px;font-weight:600;}
 .nota-tag.urgente{background:#fee2e2;color:#991b1b;}
 .nota-tag.consulta{background:#dbeafe;color:#1e40af;}
 .nota-tag.tarea{background:#fef3c7;color:#92400e;}
 .nota-tag.recordatorio{background:#ede9fe;color:#5b21b6;}
-.nota-vence{font-size:11px;font-family:var(--mono);padding:1px 8px;border-radius:10px;}
+.nota-vence{font-size:11px;font-family:var(--mono);padding:2px 8px;border-radius:10px;}
 .nota-vence.vencida{background:#fee2e2;color:#991b1b;font-weight:600;}
 .nota-vence.hoy{background:#fef3c7;color:#92400e;font-weight:600;}
 .nota-vence.pronto{background:#fef3c7;color:#92400e;}
 .nota-vence.ok{background:#d1fae5;color:#065f46;}
-.nota-actions{display:flex;gap:4px;flex-shrink:0;margin-top:1px;}
 .notas-vacio{text-align:center;padding:3rem 1rem;color:var(--text-muted);font-size:13px;}
 .notas-vacio .ico{font-size:32px;margin-bottom:.5rem;opacity:.4;}
 .notas-filtros{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;}
@@ -785,11 +806,14 @@ tbody tr:hover td{background:#fafaf8;}
           <div id="dash-vencimientos"></div>
         </div>
         <div class="dash-card">
-          <div class="dash-card-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            Sin movimiento hace +30 días
+          <div class="dash-card-title" style="justify-content:space-between;">
+            <span style="display:flex;align-items:center;gap:6px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+              Tareas pendientes
+            </span>
+            <button onclick="showTab('notas')" style="font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid var(--border-dark);background:transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">Ver todas</button>
           </div>
-          <div id="dash-sin-mov"></div>
+          <div id="dash-tareas-pendientes"></div>
         </div>
       </div>
     </div>
@@ -832,6 +856,15 @@ tbody tr:hover td{background:#fafaf8;}
         </div>
       </div>
 
+      <!-- Barra progreso -->
+      <div class="notas-progreso-wrap" id="notas-progreso-wrap" style="display:none;">
+        <div class="notas-progreso-header">
+          <span id="notas-progreso-lbl">0 de 0 completadas</span>
+          <span class="np-pct" id="notas-progreso-pct">0%</span>
+        </div>
+        <div class="notas-progreso-bar"><div class="notas-progreso-inner" id="notas-progreso-inner" style="width:0%"></div></div>
+      </div>
+
       <!-- Filtros -->
       <div class="notas-filtros">
         <button class="nf-btn active" onclick="setNotaFiltro('todas',this)">Todas</button>
@@ -842,7 +875,7 @@ tbody tr:hover td{background:#fafaf8;}
         <button class="nf-btn" onclick="setNotaFiltro('vence',this)">⏰ Con fecha</button>
       </div>
 
-      <div class="nota-lista" id="notas-lista"></div>
+      <div id="notas-lista"></div>
     </div>
   </div>
 
@@ -2850,21 +2883,49 @@ function renderDashboard(){
     const db=diasSinMov[b.prod.trim().toUpperCase()]??9999;
     return db-da;
   });
-  const elSinMov=document.getElementById('dash-sin-mov');
-  if(!sinMov.length){
-    elSinMov.innerHTML='<div class="dash-empty">Todos los productos tuvieron movimientos recientes</div>';
-  } else {
-    elSinMov.innerHTML=sinMov.slice(0,10).map(d=>{
-      const dias=diasSinMov[d.prod.trim().toUpperCase()];
-      const diasLbl=dias===null?'Sin historial':dias===0?'Hoy':dias===1?'1 día':`${dias} días`;
-      return `<div class="dash-row">
-        <span class="dr-name" title="${d.prod}">${d.prod}</span>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
-          <span class="dr-val warn">${fmt(d.total)} ${d.unidad}</span>
-          <span style="font-size:10px;color:var(--text-muted);font-family:var(--mono);">hace ${diasLbl}</span>
-        </div>
-      </div>`;
-    }).join('');
+  // (sin-mov ya no se usa en dashboard — reemplazado por tareas)
+
+  // Tareas pendientes en dashboard
+  const elTareas = document.getElementById('dash-tareas-pendientes');
+  if(elTareas){
+    const tipoLbl = {tarea:'📋', consulta:'❓', urgente:'🔴', recordatorio:'🔔'};
+    const tipoTag = {
+      tarea:'background:#fef3c7;color:#92400e;',
+      consulta:'background:#dbeafe;color:#1e40af;',
+      urgente:'background:#fee2e2;color:#991b1b;',
+      recordatorio:'background:#ede9fe;color:#5b21b6;'
+    };
+    const pendientes = notas.filter(n=>!n.done);
+    if(!pendientes.length){
+      elTareas.innerHTML='<div class="dash-empty">✅ No hay tareas pendientes</div>';
+    } else {
+      // Sort: urgentes primero, luego por fecha
+      const sorted = [...pendientes].sort((a,b)=>{
+        if(a.tipo==='urgente'&&b.tipo!=='urgente') return -1;
+        if(b.tipo==='urgente'&&a.tipo!=='urgente') return 1;
+        if(a.vence&&b.vence) return a.vence.localeCompare(b.vence);
+        if(a.vence) return -1;
+        if(b.vence) return 1;
+        return 0;
+      });
+      elTareas.innerHTML = sorted.slice(0,6).map(n=>{
+        const vl = venceLbl(n.vence);
+        const venceHtml = vl ? `<span class="nota-vence ${vl.cls}" style="font-size:10px;padding:1px 6px;">${vl.txt}</span>` : '';
+        return `<div class="dash-row" style="align-items:flex-start;padding:7px 0;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${tipoLbl[n.tipo]||''} ${n.texto}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+              <span style="font-size:10px;padding:1px 7px;border-radius:8px;font-weight:600;${tipoTag[n.tipo]||''}">${n.tipo}</span>
+              ${venceHtml}
+            </div>
+          </div>
+          <div class="nt-check ${n.done?'checked':''}" onclick="toggleNota(${n.id});renderDashboard();" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border-dark);cursor:pointer;flex-shrink:0;margin-left:8px;margin-top:2px;display:inline-flex;align-items:center;justify-content:center;"></div>
+        </div>`;
+      }).join('');
+      if(pendientes.length>6){
+        elTareas.innerHTML += `<div style="text-align:center;margin-top:6px;"><span style="font-size:11px;color:var(--text-muted);">+${pendientes.length-6} más</span></div>`;
+      }
+    }
   }
 }
 
@@ -2937,6 +2998,18 @@ function renderNotas(){
   const lista = document.getElementById('notas-lista');
   if(!lista) return;
 
+  // Barra de progreso
+  const total = notas.length;
+  const completadas = notas.filter(n=>n.done).length;
+  const pct = total>0?Math.round(completadas/total*100):0;
+  const progWrap = document.getElementById('notas-progreso-wrap');
+  if(progWrap){
+    progWrap.style.display = total>0?'block':'none';
+    document.getElementById('notas-progreso-lbl').textContent = `${completadas} de ${total} completadas`;
+    document.getElementById('notas-progreso-pct').textContent = pct+'%';
+    document.getElementById('notas-progreso-inner').style.width = pct+'%';
+  }
+
   let data = [...notas];
   if(_notaFiltro === 'pendientes') data = data.filter(n=>!n.done);
   else if(_notaFiltro === 'vence') data = data.filter(n=>n.vence && !n.done);
@@ -2950,24 +3023,76 @@ function renderNotas(){
 
   const tipoLbl = {tarea:'📋 Tarea', consulta:'❓ Consulta', urgente:'🔴 Urgente', recordatorio:'🔔 Recordatorio'};
 
-  lista.innerHTML = data.map(n=>{
-    const vl = venceLbl(n.vence);
-    const venceHtml = vl ? `<span class="nota-vence ${vl.cls}">${vl.txt}</span>` : '';
-    return `<div class="nota-item ${n.done?'done':''}">
-      <div class="nota-check ${n.done?'checked':''}" onclick="toggleNota(${n.id})"></div>
-      <div class="nota-body">
-        <div class="nota-texto">${n.texto}</div>
-        <div class="nota-meta">
-          <span class="nota-tag ${n.tipo}">${tipoLbl[n.tipo]||n.tipo}</span>
-          <span class="nota-fecha">${n.fecha}</span>
-          ${venceHtml}
+  // Agrupar: urgentes pendientes, pendientes/en curso, completadas
+  const urgentes = data.filter(n=>!n.done && n.tipo==='urgente');
+  const pendientes = data.filter(n=>!n.done && n.tipo!=='urgente');
+  const hechas = data.filter(n=>n.done);
+
+  function renderTabla(items, grupoCls){
+    if(!items.length) return '';
+    return `<table class="notas-tabla">
+      <thead><tr>
+        <th class="nt-check-cell"></th>
+        <th>Tarea</th>
+        <th style="width:100px;">Categoría</th>
+        <th style="width:110px;">Fecha límite</th>
+        <th style="width:40px;"></th>
+      </tr></thead>
+      <tbody>
+        ${items.map(n=>{
+          const vl = venceLbl(n.vence);
+          const venceHtml = vl ? `<span class="nota-vence ${vl.cls}">${vl.txt}</span>` : `<span style="color:var(--text-muted);font-size:11px;">Sin fecha</span>`;
+          return `<tr class="${n.done?'done-row':''}">
+            <td class="nt-check-cell"><div class="nt-check ${n.done?'checked':''}" onclick="toggleNota(${n.id})"></div></td>
+            <td>
+              <div class="nt-texto">${n.texto}</div>
+              <div class="nt-meta">
+                <span class="nt-fecha">📅 ${n.fecha}</span>
+              </div>
+            </td>
+            <td><span class="nota-tag ${n.tipo}">${tipoLbl[n.tipo]||n.tipo}</span></td>
+            <td>${venceHtml}</td>
+            <td><button class="btn-sm btn-sm-danger" onclick="eliminarNota(${n.id})" style="padding:2px 7px;">×</button></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  function renderGrupo(titulo, items, dotCls, collapsed=false){
+    if(!items.length) return '';
+    const id = 'ng-'+titulo.replace(/\s/g,'');
+    const countCls = dotCls==='pendiente'&&items.some(n=>n.tipo==='urgente')?'urgente':'';
+    return `<div class="notas-grupo">
+      <div class="notas-grupo-header" onclick="toggleNotaGrupo('${id}')">
+        <div class="notas-grupo-titulo">
+          <span class="notas-grupo-dot ${dotCls}"></span>
+          ${titulo}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="notas-grupo-count ${countCls}">${items.length}</span>
+          <span class="notas-grupo-chevron" id="chev-${id}">${collapsed?'▸':'▾'}</span>
         </div>
       </div>
-      <div class="nota-actions">
-        <button class="btn-sm btn-sm-danger" onclick="eliminarNota(${n.id})">×</button>
+      <div id="${id}" style="display:${collapsed?'none':'block'};">
+        ${renderTabla(items, dotCls)}
       </div>
     </div>`;
-  }).join('');
+  }
+
+  lista.innerHTML =
+    (urgentes.length ? renderGrupo('Urgentes', urgentes, 'pendiente') : '') +
+    (pendientes.length ? renderGrupo('Pendientes', pendientes, 'en-curso') : '') +
+    (hechas.length ? renderGrupo('Completadas', hechas, 'completada', true) : '');
+}
+
+function toggleNotaGrupo(id){
+  const el = document.getElementById(id);
+  const chev = document.getElementById('chev-'+id);
+  if(!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open?'none':'block';
+  if(chev) chev.textContent = open?'▸':'▾';
 }
 
 async function saveNotas(){
