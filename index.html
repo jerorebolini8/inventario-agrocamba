@@ -383,34 +383,32 @@ tbody tr:hover td{background:#fafaf8;}
 .notas-progreso-header .np-pct{font-weight:700;font-family:var(--mono);color:var(--text);}
 .notas-progreso-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
 .notas-progreso-inner{height:100%;background:var(--accent);border-radius:3px;transition:width .3s;}
-/* Grupos */
-.notas-grupo{margin-bottom:1.25rem;}
-.notas-grupo-header{display:flex;align-items:center;justify-content:space-between;padding:6px 0 8px;cursor:pointer;user-select:none;}
-.notas-grupo-titulo{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;}
+/* Grupos estilo profesional */
+.notas-grupo{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;}
+.notas-grupo-header{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;user-select:none;border-bottom:1px solid transparent;transition:background .12s;}
+.notas-grupo-header:hover{background:#fafaf8;}
+.notas-grupo-header.open{border-bottom-color:var(--border);}
 .notas-grupo-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-.notas-grupo-dot.pendiente{background:#f97316;}
-.notas-grupo-dot.en-curso{background:#3b82f6;}
-.notas-grupo-dot.completada{background:#16a34a;}
-.notas-grupo-count{font-size:11px;font-weight:700;background:var(--border);color:var(--text-muted);border-radius:10px;padding:1px 8px;font-family:var(--mono);}
-.notas-grupo-count.urgente{background:#fee2e2;color:#991b1b;}
-.notas-grupo-chevron{font-size:12px;color:var(--text-muted);}
-/* Tabla de tareas */
-.notas-tabla{width:100%;border-collapse:collapse;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:.5rem;}
-.notas-tabla thead th{background:#f9f8f5;padding:7px 12px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);border-bottom:1px solid var(--border);}
-.notas-tabla tbody tr{border-bottom:.5px solid var(--border);transition:background .1s;}
-.notas-tabla tbody tr:last-child{border-bottom:none;}
-.notas-tabla tbody tr:hover{background:#fafaf8;}
-.notas-tabla tbody tr.done-row td{opacity:.5;}
-.notas-tabla tbody tr.done-row .nt-texto{text-decoration:line-through;}
-.notas-tabla td{padding:9px 12px;font-size:13px;vertical-align:middle;}
-.nt-check-cell{width:36px;text-align:center;}
-.nt-check{width:18px;height:18px;border-radius:50%;border:2px solid var(--border-dark);cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;transition:all .15s;}
-.nt-check:hover{border-color:var(--accent);}
-.nt-check.checked{background:var(--accent);border-color:var(--accent);}
-.nt-check.checked::after{content:'✓';font-size:10px;color:#fff;font-weight:700;}
-.nt-texto{font-weight:500;line-height:1.4;}
-.nt-meta{display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap;}
-.nt-fecha{font-size:11px;color:var(--text-muted);font-family:var(--mono);display:flex;align-items:center;gap:3px;}
+.notas-grupo-label{font-size:13px;font-weight:700;color:var(--text);flex:1;}
+.notas-grupo-count{font-size:12px;font-weight:700;padding:2px 9px;border-radius:20px;}
+.notas-grupo-arrow{color:var(--text-muted);font-size:12px;transition:transform .2s;}
+.notas-grupo-body{display:none;}
+.notas-grupo-body.open{display:block;}
+/* Filas de tarea */
+.tarea-row-header{display:grid;grid-template-columns:36px 1fr 110px 90px 70px;gap:12px;padding:8px 16px;background:#f9f8f5;border-bottom:1px solid var(--border);}
+.tarea-col-lbl{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-family:var(--mono);}
+.tarea-row{display:grid;grid-template-columns:36px 1fr 110px 90px 70px;align-items:start;gap:12px;padding:11px 16px;border-bottom:.5px solid var(--border);transition:background .1s;}
+.tarea-row:last-child{border-bottom:none;}
+.tarea-row:hover{background:#fafaf8;}
+.tarea-row.done-row{opacity:.55;}
+.tarea-row.done-row .tr-texto{text-decoration:line-through;color:var(--text-muted);}
+.tr-check{width:18px;height:18px;border-radius:50%;border:2px solid var(--border-dark);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s;margin-top:2px;flex-shrink:0;}
+.tr-check:hover{border-color:var(--accent);}
+.tr-check.checked{background:var(--accent);border-color:var(--accent);}
+.tr-check.checked::after{content:'✓';font-size:10px;color:#fff;font-weight:700;}
+.tr-texto{font-size:13px;font-weight:600;color:var(--text);line-height:1.45;word-break:break-word;white-space:normal;}
+.tr-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.tr-meta span{font-size:11px;color:var(--text-muted);}
 .nota-tag{font-size:10.5px;padding:2px 9px;border-radius:10px;font-weight:600;}
 .nota-tag.urgente{background:#fee2e2;color:#991b1b;}
 .nota-tag.consulta{background:#dbeafe;color:#1e40af;}
@@ -427,6 +425,10 @@ tbody tr:hover td{background:#fafaf8;}
 .nf-btn{padding:5px 13px;font-size:12px;border-radius:20px;border:1px solid var(--border-dark);background:transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);transition:all .15s;}
 .nf-btn:hover{background:var(--bg-card);color:var(--text);}
 .nf-btn.active{background:var(--bg-sidebar);color:#fff;border-color:var(--bg-sidebar);}
+/* Modal editar nota */
+.edit-nota-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center;}
+.edit-nota-overlay.open{display:flex;}
+.edit-nota-modal{background:var(--bg-card);border-radius:14px;padding:1.75rem;width:520px;max-width:96vw;position:relative;}
 </style>
 </head>
 <body>
@@ -879,6 +881,38 @@ tbody tr:hover td{background:#fafaf8;}
     </div>
   </div>
 
+
+<!-- MODAL EDITAR NOTA -->
+<div class="edit-nota-overlay" id="edit-nota-overlay" onclick="if(event.target===this)cerrarEditNota()">
+  <div class="edit-nota-modal">
+    <button class="modal-close" onclick="cerrarEditNota()">×</button>
+    <div class="modal-title" style="font-size:17px;font-weight:600;margin-bottom:4px;">Editar tarea</div>
+    <div class="modal-sub" style="font-size:13px;color:var(--text-muted);margin-bottom:1.25rem;">Modificá los datos de esta tarea</div>
+    <div class="fg" style="margin-bottom:11px;">
+      <label style="font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);">Texto</label>
+      <textarea id="en-texto" style="width:100%;padding:9px 12px;font-size:13.5px;font-family:var(--font);border:1px solid var(--border-dark);border-radius:8px;background:var(--bg);color:var(--text);outline:none;resize:vertical;min-height:70px;line-height:1.5;" placeholder="Descripción de la tarea..."></textarea>
+    </div>
+    <div style="display:flex;gap:11px;margin-bottom:11px;">
+      <div class="fg" style="flex:1;margin-bottom:0;">
+        <label style="font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);">Categoría</label>
+        <select id="en-tipo" style="width:100%;padding:9px 12px;font-size:13px;font-family:var(--font);border:1px solid var(--border-dark);border-radius:8px;background:var(--bg);color:var(--text);outline:none;">
+          <option value="tarea">📋 Tarea</option>
+          <option value="consulta">❓ Consulta</option>
+          <option value="urgente">🔴 Urgente</option>
+          <option value="recordatorio">🔔 Recordatorio</option>
+        </select>
+      </div>
+      <div class="fg" style="flex:1;margin-bottom:0;">
+        <label style="font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);">Fecha límite</label>
+        <input type="date" id="en-vence" style="width:100%;padding:9px 12px;font-size:13px;font-family:var(--font);border:1px solid var(--border-dark);border-radius:8px;background:var(--bg);color:var(--text);outline:none;">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-dark" onclick="guardarEditNota()">Guardar cambios</button>
+      <button class="btn btn-ghost" onclick="cerrarEditNota()">Cancelar</button>
+    </div>
+  </div>
+</div>
 </main>
 
 <!-- MODAL VENCIMIENTOS MASIVOS -->
@@ -3017,82 +3051,112 @@ function renderNotas(){
     data = data.filter(n=>n.tipo===_notaFiltro);
 
   if(!data.length){
-    lista.innerHTML=`<div class="notas-vacio"><div class="ico">📝</div>No hay notas en esta categoría</div>`;
+    lista.innerHTML='<div class="notas-vacio"><div class="ico">📝</div>No hay notas en esta categoría</div>';
     return;
   }
 
   const tipoLbl = {tarea:'📋 Tarea', consulta:'❓ Consulta', urgente:'🔴 Urgente', recordatorio:'🔔 Recordatorio'};
+  const dotColor = {urgente:'#D85A30', tarea:'#185FA5', consulta:'#7c3d0a', recordatorio:'#5b21b6'};
+  const countStyle = {
+    urgente:'background:#FCEBEB;color:#A32D2D',
+    tarea:'background:#DBEAFE;color:#1e40af',
+    consulta:'background:#fef3c7;color:#92400e',
+    recordatorio:'background:#ede9fe;color:#5b21b6'
+  };
 
-  // Agrupar: urgentes pendientes, pendientes/en curso, completadas
-  const urgentes = data.filter(n=>!n.done && n.tipo==='urgente');
-  const pendientes = data.filter(n=>!n.done && n.tipo!=='urgente');
-  const hechas = data.filter(n=>n.done);
+  const urgentes  = data.filter(n=>!n.done && n.tipo==='urgente');
+  const pendientes= data.filter(n=>!n.done && n.tipo!=='urgente');
+  const hechas    = data.filter(n=>n.done);
 
-  function renderTabla(items, grupoCls){
-    if(!items.length) return '';
-    return `<table class="notas-tabla">
-      <thead><tr>
-        <th class="nt-check-cell"></th>
-        <th>Tarea</th>
-        <th style="width:100px;">Categoría</th>
-        <th style="width:110px;">Fecha límite</th>
-        <th style="width:40px;"></th>
-      </tr></thead>
-      <tbody>
-        ${items.map(n=>{
-          const vl = venceLbl(n.vence);
-          const venceHtml = vl ? `<span class="nota-vence ${vl.cls}">${vl.txt}</span>` : `<span style="color:var(--text-muted);font-size:11px;">Sin fecha</span>`;
-          return `<tr class="${n.done?'done-row':''}">
-            <td class="nt-check-cell"><div class="nt-check ${n.done?'checked':''}" onclick="toggleNota(${n.id})"></div></td>
-            <td>
-              <div class="nt-texto">${n.texto}</div>
-              <div class="nt-meta">
-                <span class="nt-fecha">📅 ${n.fecha}</span>
-              </div>
-            </td>
-            <td><span class="nota-tag ${n.tipo}">${tipoLbl[n.tipo]||n.tipo}</span></td>
-            <td>${venceHtml}</td>
-            <td><button class="btn-sm btn-sm-danger" onclick="eliminarNota(${n.id})" style="padding:2px 7px;">×</button></td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>`;
+  function renderFilas(items){
+    if(!items.length) return '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">No hay tareas aquí</div>';
+    return `
+      <div class="tarea-row-header">
+        <div></div>
+        <div class="tarea-col-lbl">Tarea</div>
+        <div class="tarea-col-lbl">Categoría</div>
+        <div class="tarea-col-lbl">Fecha límite</div>
+        <div class="tarea-col-lbl" style="text-align:right">Acc.</div>
+      </div>
+      ${items.map(n=>{
+        const vl = venceLbl(n.vence);
+        const venceHtml = vl ? `<span class="nota-vence ${vl.cls}">${vl.txt}</span>` : `<span style="color:var(--text-muted);font-size:11px;">Sin fecha</span>`;
+        return `<div class="tarea-row ${n.done?'done-row':''}">
+          <div style="display:flex;align-items:flex-start;padding-top:2px;">
+            <div class="tr-check ${n.done?'checked':''}" onclick="toggleNota(${n.id})"></div>
+          </div>
+          <div>
+            <div class="tr-texto">${n.texto}</div>
+            <div class="tr-meta"><span>📅 ${n.fecha}</span></div>
+          </div>
+          <div><span class="nota-tag ${n.tipo}">${tipoLbl[n.tipo]||n.tipo}</span></div>
+          <div>${venceHtml}</div>
+          <div style="display:flex;gap:4px;justify-content:flex-end;">
+            <button class="btn-sm" onclick="abrirEditNota(${n.id})" title="Editar" style="padding:2px 7px;">✏</button>
+            <button class="btn-sm btn-sm-danger" onclick="eliminarNota(${n.id})" style="padding:2px 7px;">×</button>
+          </div>
+        </div>`;
+      }).join('')}`;
   }
 
-  function renderGrupo(titulo, items, dotCls, collapsed=false){
+  function renderGrupo(titulo, items, dot, countSty, collapsed=false){
     if(!items.length) return '';
-    const id = 'ng-'+titulo.replace(/\s/g,'');
-    const countCls = dotCls==='pendiente'&&items.some(n=>n.tipo==='urgente')?'urgente':'';
+    const id = 'ng-' + titulo.replace(/\s+/g,'_');
     return `<div class="notas-grupo">
-      <div class="notas-grupo-header" onclick="toggleNotaGrupo('${id}')">
-        <div class="notas-grupo-titulo">
-          <span class="notas-grupo-dot ${dotCls}"></span>
-          ${titulo}
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span class="notas-grupo-count ${countCls}">${items.length}</span>
-          <span class="notas-grupo-chevron" id="chev-${id}">${collapsed?'▸':'▾'}</span>
-        </div>
+      <div class="notas-grupo-header ${!collapsed?'open':''}" onclick="toggleNotaGrupo('${id}',this)">
+        <div class="notas-grupo-dot" style="background:${dot}"></div>
+        <div class="notas-grupo-label">${titulo}</div>
+        <span class="notas-grupo-count" style="${countSty}">${items.length}</span>
+        <span class="notas-grupo-arrow" id="arrow-${id}">${!collapsed?'▲':'▼'}</span>
       </div>
-      <div id="${id}" style="display:${collapsed?'none':'block'};">
-        ${renderTabla(items, dotCls)}
+      <div class="notas-grupo-body ${!collapsed?'open':''}" id="${id}">
+        ${renderFilas(items)}
       </div>
     </div>`;
   }
 
   lista.innerHTML =
-    (urgentes.length ? renderGrupo('Urgentes', urgentes, 'pendiente') : '') +
-    (pendientes.length ? renderGrupo('Pendientes', pendientes, 'en-curso') : '') +
-    (hechas.length ? renderGrupo('Completadas', hechas, 'completada', true) : '');
+    renderGrupo('Urgentes',   urgentes,  '#D85A30','background:#FCEBEB;color:#A32D2D') +
+    renderGrupo('Pendientes', pendientes,'#185FA5', 'background:#DBEAFE;color:#1e40af') +
+    renderGrupo('Completadas',hechas,    '#1D9E75', 'background:#D1FAE5;color:#065F46', true);
 }
 
-function toggleNotaGrupo(id){
-  const el = document.getElementById(id);
-  const chev = document.getElementById('chev-'+id);
-  if(!el) return;
-  const open = el.style.display !== 'none';
-  el.style.display = open?'none':'block';
-  if(chev) chev.textContent = open?'▸':'▾';
+function toggleNotaGrupo(id, header){
+  const body = document.getElementById(id);
+  const arrow = document.getElementById('arrow-'+id);
+  if(!body) return;
+  const open = body.classList.contains('open');
+  body.classList.toggle('open', !open);
+  if(header) header.classList.toggle('open', !open);
+  if(arrow) arrow.textContent = !open?'▲':'▼';
+}
+
+// ── EDITAR NOTA ───────────────────────────────────────────
+let _editNotaId = null;
+function abrirEditNota(id){
+  const n = notas.find(x=>x.id===id);
+  if(!n) return;
+  _editNotaId = id;
+  document.getElementById('en-texto').value = n.texto;
+  document.getElementById('en-tipo').value = n.tipo;
+  document.getElementById('en-vence').value = n.vence||'';
+  document.getElementById('edit-nota-overlay').classList.add('open');
+}
+function cerrarEditNota(){
+  document.getElementById('edit-nota-overlay').classList.remove('open');
+  _editNotaId = null;
+}
+function guardarEditNota(){
+  const n = notas.find(x=>x.id===_editNotaId);
+  if(!n) return;
+  n.texto = document.getElementById('en-texto').value.trim();
+  n.tipo  = document.getElementById('en-tipo').value;
+  n.vence = document.getElementById('en-vence').value;
+  if(!n.texto){ showToast('El texto no puede estar vacío'); return; }
+  cerrarEditNota();
+  renderNotas();
+  saveNotas();
+  showToast('✓ Tarea actualizada');
 }
 
 async function saveNotas(){
