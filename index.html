@@ -449,6 +449,18 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
 .fact-estado-pill{font-size:11px;font-weight:600;padding:2px 10px;border-radius:12px;cursor:pointer;border:none;font-family:var(--font);}
 .fact-estado-pill.pendiente{background:#fee2e2;color:#991b1b;}
 .fact-estado-pill.pagado{background:#d1fae5;color:#065f46;}
+.fact-estado-select{font-size:11px;font-weight:600;padding:3px 8px 3px 10px;border-radius:12px;cursor:pointer;border:none;font-family:var(--font);outline:none;appearance:none;-webkit-appearance:none;background-position:right 4px center;background-repeat:no-repeat;background-size:12px;padding-right:22px;}
+.fact-estado-select.Pendiente{background-color:#fee2e2;color:#991b1b;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23991b1b" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>');}
+.fact-estado-select.Pagado{background-color:#d1fae5;color:#065f46;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23065f46" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>');}
+.fact-row-toggle{background:transparent;border:1px solid var(--border-dark);color:var(--text-muted);font-size:11px;padding:3px 10px;border-radius:7px;cursor:pointer;font-family:var(--font);white-space:nowrap;}
+.fact-row-toggle:hover{background:#fafaf8;color:var(--text);}
+.fact-detail-row{display:none;background:#f9f8f5;}
+.fact-detail-row.open{display:table-row;}
+.fact-detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px 18px;font-size:12px;}
+.fact-detail-item .fdi-lbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);margin-bottom:2px;}
+.fact-detail-item .fdi-val{font-size:13px;color:var(--text);font-weight:500;}
+.fact-detail-item.span2{grid-column:span 2;}
+.fact-detail-item.span4{grid-column:span 4;}
 .fact-desc-cell{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .fact-obs-cell{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted);font-size:11.5px;}
 .fact-form-modal{background:var(--bg-card);border-radius:14px;padding:1.75rem;width:680px;max-width:96vw;max-height:90vh;overflow-y:auto;position:relative;}
@@ -978,11 +990,8 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
       <div class="fact-table-wrap">
         <table class="fact-table">
           <thead><tr>
-            <th>Fecha</th><th>Proveedor</th><th>Tipo</th><th>Pto.V</th><th>Número</th>
-            <th>Descripción</th><th style="text-align:right">Neto</th><th style="text-align:right">IVA 21%</th>
-            <th style="text-align:right">IVA 10.5%</th><th style="text-align:right">Percep. IIBB</th>
-            <th style="text-align:right">Otros Imp.</th><th style="text-align:right">Total</th>
-            <th>CAE</th><th>Vto. CAE</th><th>Estado</th><th>Método Pago</th><th>Observación</th><th></th>
+            <th>Fecha</th><th>Proveedor</th><th>Tipo</th><th>Número</th>
+            <th style="text-align:right">Total</th><th>Estado</th><th>Vencimiento</th><th></th><th></th>
           </tr></thead>
           <tbody id="fact-tbody"></tbody>
         </table>
@@ -3508,48 +3517,83 @@ function renderFacturas(){
   data.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
 
   // Métricas
-  const totalPend = data.filter(f=>f.estado==='Pendiente').reduce((s,f)=>s+(f.total||0),0);
+  const pendientesArr = data.filter(f=>f.estado==='Pendiente');
+  const totalPend = pendientesArr.reduce((s,f)=>s+(f.total||0),0);
   const totalPagado = data.filter(f=>f.estado==='Pagado').reduce((s,f)=>s+(f.total||0),0);
   const elMetrics=document.getElementById('fact-metrics');
   if(elMetrics){
     elMetrics.innerHTML=`
       <div class="dash-pill"><div><div class="dp-lbl">Comprobantes</div><div class="dp-val">${data.length}</div></div></div>
+      <div class="dash-pill"><div><div class="dp-lbl">Facturas pendientes</div><div class="dp-val danger">${pendientesArr.length}</div></div></div>
       <div class="dash-pill"><div><div class="dp-lbl">Total pendiente</div><div class="dp-val danger">$ ${fmtMonto(totalPend)}</div></div></div>
       <div class="dash-pill"><div><div class="dp-lbl">Total pagado</div><div class="dp-val ok">$ ${fmtMonto(totalPagado)}</div></div></div>
     `;
   }
 
   if(!data.length){
-    tbody.innerHTML=`<tr><td colspan="18" class="empty"><div class="ico">🧾</div>No hay facturas cargadas</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="9" class="empty"><div class="ico">🧾</div>No hay facturas cargadas</td></tr>`;
     return;
   }
 
   tbody.innerHTML = data.map(f=>{
     const totalCls = f.estado==='Pagado'?'pagado':'pendiente';
+    const rowId = 'fr-'+f.id;
     return `<tr>
       <td>${f.fecha?new Date(f.fecha+'T00:00:00').toLocaleDateString('es-AR'):'—'}</td>
       <td style="font-weight:500;">${f.proveedor||'—'}</td>
       <td>${f.tipo||'—'}</td>
-      <td>${f.ptov||'—'}</td>
       <td>${f.numero||'—'}</td>
-      <td class="fact-desc-cell" title="${f.desc||''}">${f.desc||'—'}</td>
-      <td style="text-align:right;">${fmtMonto(f.neto)}</td>
-      <td style="text-align:right;">${fmtMonto(f.iva21)}</td>
-      <td style="text-align:right;">${fmtMonto(f.iva105)}</td>
-      <td style="text-align:right;">${fmtMonto(f.percep)}</td>
-      <td style="text-align:right;">${fmtMonto(f.otros)}</td>
       <td style="text-align:right;" class="fact-total ${totalCls}">${fmtMonto(f.total)}</td>
-      <td>${f.cae||'—'}</td>
+      <td>
+        <select class="fact-estado-select ${f.estado==='Pagado'?'Pagado':'Pendiente'}" onchange="cambiarFacturaEstado(${f.id}, this.value, this)">
+          <option value="Pendiente" ${f.estado!=='Pagado'?'selected':''}>Pendiente</option>
+          <option value="Pagado" ${f.estado==='Pagado'?'selected':''}>Pagado</option>
+        </select>
+      </td>
       <td>${f.vtocae?new Date(f.vtocae+'T00:00:00').toLocaleDateString('es-AR'):'—'}</td>
-      <td><button class="fact-estado-pill ${f.estado==='Pagado'?'pagado':'pendiente'}" onclick="toggleFacturaEstado(${f.id})">${f.estado}</button></td>
-      <td>${f.metodo||'—'}</td>
-      <td class="fact-obs-cell" title="${f.obs||''}">${f.obs||'—'}</td>
+      <td><button class="fact-row-toggle" onclick="toggleFacturaDetalle('${rowId}')" id="btn-${rowId}">Ver detalle ▾</button></td>
       <td style="display:flex;gap:4px;">
         <button class="btn-sm" onclick="abrirFacturaModal(${f.id})" title="Editar">✏</button>
         <button class="btn-sm btn-sm-danger" onclick="eliminarFactura(${f.id})" title="Eliminar">×</button>
       </td>
+    </tr>
+    <tr class="fact-detail-row" id="${rowId}">
+      <td colspan="9" style="padding:0;">
+        <div class="fact-detail-grid">
+          <div class="fact-detail-item"><div class="fdi-lbl">Punto de venta</div><div class="fdi-val">${f.ptov||'—'}</div></div>
+          <div class="fact-detail-item span2"><div class="fdi-lbl">Descripción</div><div class="fdi-val">${f.desc||'—'}</div></div>
+          <div class="fact-detail-item"><div class="fdi-lbl">Método de pago</div><div class="fdi-val">${f.metodo||'—'}</div></div>
+          <div class="fact-detail-item"><div class="fdi-lbl">Neto</div><div class="fdi-val">$ ${fmtMonto(f.neto)}</div></div>
+          <div class="fact-detail-item"><div class="fdi-lbl">IVA 21%</div><div class="fdi-val">$ ${fmtMonto(f.iva21)}</div></div>
+          <div class="fact-detail-item"><div class="fdi-lbl">IVA 10.5%</div><div class="fdi-val">$ ${fmtMonto(f.iva105)}</div></div>
+          <div class="fact-detail-item"><div class="fdi-lbl">Percepción IIBB</div><div class="fdi-val">$ ${fmtMonto(f.percep)}</div></div>
+          <div class="fact-detail-item"><div class="fdi-lbl">Otros impuestos</div><div class="fdi-val">$ ${fmtMonto(f.otros)}</div></div>
+          <div class="fact-detail-item"><div class="fdi-lbl">CAE</div><div class="fdi-val">${f.cae||'—'}</div></div>
+          <div class="fact-detail-item"><div class="fdi-lbl">Moneda</div><div class="fdi-val">${f.moneda||'ARS'}</div></div>
+          <div class="fact-detail-item span4"><div class="fdi-lbl">Observación</div><div class="fdi-val">${f.obs||'—'}</div></div>
+        </div>
+      </td>
     </tr>`;
   }).join('');
+}
+
+function toggleFacturaDetalle(rowId){
+  const row = document.getElementById(rowId);
+  const btn = document.getElementById('btn-'+rowId);
+  if(!row) return;
+  const open = row.classList.contains('open');
+  row.classList.toggle('open', !open);
+  if(btn) btn.textContent = !open ? 'Ocultar detalle ▴' : 'Ver detalle ▾';
+}
+
+async function cambiarFacturaEstado(id, nuevoEstado, selectEl){
+  const f=facturas.find(x=>x.id===id);
+  if(!f)return;
+  f.estado = nuevoEstado;
+  if(selectEl){ selectEl.className = 'fact-estado-select ' + nuevoEstado; }
+  renderFacturas();
+  await saveAll();
+  showToast(nuevoEstado==='Pagado'?'✓ Marcada como pagada':'Marcada como pendiente');
 }
 
 function exportarFacturasCSV(){
