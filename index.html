@@ -429,6 +429,34 @@ tbody tr:hover td{background:#fafaf8;}
 .edit-nota-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center;}
 .edit-nota-overlay.open{display:flex;}
 .edit-nota-modal{background:var(--bg-card);border-radius:14px;padding:1.75rem;width:520px;max-width:96vw;position:relative;}
+
+/* FACTURAS */
+.fact-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1rem;justify-content:space-between;}
+.fact-tabs{display:flex;gap:6px;}
+.fact-tab-btn{padding:6px 14px;font-size:12.5px;border-radius:8px;border:1px solid var(--border-dark);background:var(--bg-card);color:var(--text-muted);cursor:pointer;font-family:var(--font);transition:all .15s;}
+.fact-tab-btn:hover{background:#fafaf8;color:var(--text);}
+.fact-tab-btn.active{background:var(--bg-sidebar);color:#fff;border-color:var(--bg-sidebar);}
+.fact-metrics{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1.1rem;}
+.fact-table-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow-x:auto;}
+table.fact-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:1100px;}
+table.fact-table thead th{background:#eeece6;padding:8px 10px;text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#4a4a3a;font-family:var(--mono);border-bottom:1px solid var(--border-dark);white-space:nowrap;position:sticky;top:0;}
+table.fact-table tbody td{padding:8px 10px;border-bottom:.5px solid var(--border);white-space:nowrap;color:var(--text);}
+table.fact-table tbody tr:hover{background:#fafaf8;}
+table.fact-table tbody tr:last-child td{border-bottom:none;}
+.fact-total{font-weight:700;font-family:var(--mono);}
+.fact-total.pendiente{color:#991b1b;}
+.fact-total.pagado{color:#166534;}
+.fact-estado-pill{font-size:11px;font-weight:600;padding:2px 10px;border-radius:12px;cursor:pointer;border:none;font-family:var(--font);}
+.fact-estado-pill.pendiente{background:#fee2e2;color:#991b1b;}
+.fact-estado-pill.pagado{background:#d1fae5;color:#065f46;}
+.fact-desc-cell{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fact-obs-cell{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted);font-size:11.5px;}
+.fact-form-modal{background:var(--bg-card);border-radius:14px;padding:1.75rem;width:680px;max-width:96vw;max-height:90vh;overflow-y:auto;position:relative;}
+.fact-form-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;}
+.fact-form-row2{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.fact-total-preview{background:var(--accent-light);border:1px solid var(--accent-border);border-radius:10px;padding:.7rem 1.1rem;display:flex;justify-content:space-between;align-items:center;margin:8px 0 4px;}
+.fact-total-preview .ftp-lbl{font-size:12.5px;color:var(--accent);font-weight:500;}
+.fact-total-preview .ftp-val{font-size:19px;font-weight:700;font-family:var(--mono);color:var(--accent);}
 </style>
 </head>
 <body>
@@ -466,6 +494,10 @@ tbody tr:hover td{background:#fafaf8;}
     <button class="nav-btn" onclick="showTab('notas')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       Notas y tareas
+    </button>
+    <button class="nav-btn" onclick="showTab('facturas')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+      Facturas
     </button>
     <button class="nav-btn" onclick="showTab('historial')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -913,7 +945,181 @@ tbody tr:hover td{background:#fafaf8;}
     </div>
   </div>
 </div>
+
+  <!-- FACTURAS -->
+  <div id="tab-facturas" class="tab-content">
+    <div class="topbar">
+      <div><div class="page-title">Facturas</div><div class="page-sub">Registro de comprobantes · reemplaza la planilla Excel</div></div>
+      <button class="btn btn-dark" onclick="abrirFacturaModal()">+ Nueva factura</button>
+    </div>
+    <div class="content">
+      <div class="fact-metrics" id="fact-metrics"></div>
+      <div class="fact-toolbar">
+        <div class="fact-tabs">
+          <button class="fact-tab-btn active" onclick="setFacturaMoneda('ARS',this)">Comp. ARS</button>
+          <button class="fact-tab-btn" onclick="setFacturaMoneda('USD',this)">Comp. USD</button>
+        </div>
+        <div class="controls">
+          <div class="srch">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="fact-buscar" placeholder="Buscar proveedor..." oninput="renderFacturas()">
+          </div>
+          <select class="flt" id="fact-filtro-estado" onchange="renderFacturas()">
+            <option value="">Todos los estados</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Pagado">Pagado</option>
+          </select>
+          <button class="btn-export" onclick="exportarFacturasCSV()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Exportar CSV
+          </button>
+        </div>
+      </div>
+      <div class="fact-table-wrap">
+        <table class="fact-table">
+          <thead><tr>
+            <th>Fecha</th><th>Proveedor</th><th>Tipo</th><th>Pto.V</th><th>Número</th>
+            <th>Descripción</th><th style="text-align:right">Neto</th><th style="text-align:right">IVA 21%</th>
+            <th style="text-align:right">IVA 10.5%</th><th style="text-align:right">Percep. IIBB</th>
+            <th style="text-align:right">Otros Imp.</th><th style="text-align:right">Total</th>
+            <th>CAE</th><th>Vto. CAE</th><th>Estado</th><th>Método Pago</th><th>Observación</th><th></th>
+          </tr></thead>
+          <tbody id="fact-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </main>
+<!-- MODAL FACTURA -->
+<div class="overlay" id="overlay-factura" onclick="if(event.target===this)cerrarFacturaModal()">
+  <div class="fact-form-modal">
+    <button class="modal-close" onclick="cerrarFacturaModal()">×</button>
+    <div class="modal-title" id="fact-modal-title">Nueva factura</div>
+    <div class="modal-sub">Comprobante en <span id="fact-modal-moneda">ARS</span></div>
+
+    <div class="fact-form-row3" style="margin-bottom:11px;">
+      <div class="fg" style="margin-bottom:0;"><label>Fecha</label><input type="date" id="f-fecha"></div>
+      <div class="fg" style="margin-bottom:0;"><label>Tipo comprobante</label>
+        <select id="f-tipo">
+          <option>Factura A</option><option>Factura B</option><option>Factura C</option>
+          <option>Nota de Crédito A</option><option>Nota de Crédito B</option><option>Recibo</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:0;"><label>Punto de venta</label><input type="text" id="f-ptov" placeholder="0001"></div>
+    </div>
+
+    <div class="fg" style="margin-bottom:11px;"><label>Proveedor</label>
+      <div class="ac-wrap">
+        <input type="text" id="f-proveedor" placeholder="Nombre del proveedor" autocomplete="off">
+        <div class="ac-dropdown" id="ac-f-proveedor"></div>
+      </div>
+    </div>
+
+    <div class="fact-form-row2" style="margin-bottom:11px;">
+      <div class="fg" style="margin-bottom:0;"><label>Número de comprobante</label><input type="text" id="f-numero" placeholder="00000000"></div>
+      <div class="fg" style="margin-bottom:0;"><label>Descripción</label><input type="text" id="f-desc" placeholder="Detalle del comprobante"></div>
+    </div>
+
+    <div class="fact-form-row3" style="margin-bottom:11px;">
+      <div class="fg" style="margin-bottom:0;"><label>Neto</label><input type="number" step="0.01" id="f-neto" placeholder="0,00" oninput="calcFacturaTotal()"></div>
+      <div class="fg" style="margin-bottom:0;"><label>IVA 21%</label><input type="number" step="0.01" id="f-iva21" placeholder="0,00" oninput="calcFacturaTotal()"></div>
+      <div class="fg" style="margin-bottom:0;"><label>IVA 10.5%</label><input type="number" step="0.01" id="f-iva105" placeholder="0,00" oninput="calcFacturaTotal()"></div>
+    </div>
+    <div class="fact-form-row2" style="margin-bottom:11px;">
+      <div class="fg" style="margin-bottom:0;"><label>Percepción IIBB</label><input type="number" step="0.01" id="f-percep" placeholder="0,00" oninput="calcFacturaTotal()"></div>
+      <div class="fg" style="margin-bottom:0;"><label>Otros impuestos</label><input type="number" step="0.01" id="f-otros" placeholder="0,00" oninput="calcFacturaTotal()"></div>
+    </div>
+
+    <div class="fact-total-preview">
+      <span class="ftp-lbl">Total calculado</span>
+      <span class="ftp-val" id="f-total-preview">$ 0,00</span>
+    </div>
+
+    <div class="fact-form-row2" style="margin-bottom:11px;">
+      <div class="fg" style="margin-bottom:0;"><label>CAE</label><input type="text" id="f-cae" placeholder="Código CAE"></div>
+      <div class="fg" style="margin-bottom:0;"><label>Vto. CAE</label><input type="date" id="f-vtocae"></div>
+    </div>
+    <div class="fact-form-row3" style="margin-bottom:11px;">
+      <div class="fg" style="margin-bottom:0;"><label>Estado de pago</label>
+        <select id="f-estado"><option value="Pendiente">Pendiente</option><option value="Pagado">Pagado</option></select>
+      </div>
+      <div class="fg" style="margin-bottom:0;grid-column:span 2;"><label>Método de pago</label><input type="text" id="f-metodo" placeholder="Ej: Transferencia Santander"></div>
+    </div>
+    <div class="fg" style="margin-bottom:1rem;"><label>Observación</label><input type="text" id="f-obs" placeholder="Notas adicionales (opcional)"></div>
+
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-dark" onclick="guardarFactura()">Guardar factura</button>
+      <button class="btn btn-ghost" onclick="cerrarFacturaModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL FACTURA -->
+<div class="overlay" id="overlay-factura" onclick="if(event.target===this)cerrarFacturaModal()">
+  <div class="fact-form-modal">
+    <button class="modal-close" onclick="cerrarFacturaModal()">×</button>
+    <div class="modal-title" id="fact-modal-title">Nueva factura</div>
+    <div class="modal-sub">Comprobante en <span id="fact-modal-moneda">ARS</span></div>
+
+    <div class="fact-form-row3" style="margin-bottom:11px;">
+      <div class="fg" style="margin-bottom:0;"><label>Fecha</label><input type="date" id="f-fecha"></div>
+      <div class="fg" style="margin-bottom:0;"><label>Tipo comprobante</label>
+        <select id="f-tipo">
+          <option>Factura A</option><option>Factura B</option><option>Factura C</option>
+          <option>Nota de Crédito A</option><option>Nota de Crédito B</option><option>Recibo</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:0;"><label>Punto de venta</label><input type="text" id="f-ptov" placeholder="0001"></div>
+    </div>
+
+    <div class="fg" style="margin-bottom:11px;"><label>Proveedor</label>
+      <div class="ac-wrap">
+        <input type="text" id="f-proveedor" placeholder="Nombre del proveedor" autocomplete="off">
+        <div class="ac-dropdown" id="ac-f-proveedor"></div>
+      </div>
+    </div>
+
+    <div class="fact-form-row2" style="margin-bottom:11px;">
+      <div class="fg" style="margin-bottom:0;"><label>Número de comprobante</label><input type="text" id="f-numero" placeholder="00000000"></div>
+      <div class="fg" style="margin-bottom:0;"><label>Descripción</label><input type="text" id="f-desc" placeholder="Detalle del comprobante"></div>
+    </div>
+
+    <div class="fact-form-row3" style="margin-bottom:11px;">
+      <div class="fg" style="margin-bottom:0;"><label>Neto</label><input type="number" step="0.01" id="f-neto" placeholder="0,00" oninput="calcFacturaTotal()"></div>
+      <div class="fg" style="margin-bottom:0;"><label>IVA 21%</label><input type="number" step="0.01" id="f-iva21" placeholder="0,00" oninput="calcFacturaTotal()"></div>
+      <div class="fg" style="margin-bottom:0;"><label>IVA 10.5%</label><input type="number" step="0.01" id="f-iva105" placeholder="0,00" oninput="calcFacturaTotal()"></div>
+    </div>
+    <div class="fact-form-row2" style="margin-bottom:11px;">
+      <div class="fg" style="margin-bottom:0;"><label>Percepción IIBB</label><input type="number" step="0.01" id="f-percep" placeholder="0,00" oninput="calcFacturaTotal()"></div>
+      <div class="fg" style="margin-bottom:0;"><label>Otros impuestos</label><input type="number" step="0.01" id="f-otros" placeholder="0,00" oninput="calcFacturaTotal()"></div>
+    </div>
+
+    <div class="fact-total-preview">
+      <span class="ftp-lbl">Total calculado</span>
+      <span class="ftp-val" id="f-total-preview">$ 0,00</span>
+    </div>
+
+    <div class="fact-form-row2" style="margin-bottom:11px;">
+      <div class="fg" style="margin-bottom:0;"><label>CAE</label><input type="text" id="f-cae" placeholder="Código CAE"></div>
+      <div class="fg" style="margin-bottom:0;"><label>Vto. CAE</label><input type="date" id="f-vtocae"></div>
+    </div>
+    <div class="fact-form-row3" style="margin-bottom:11px;">
+      <div class="fg" style="margin-bottom:0;"><label>Estado de pago</label>
+        <select id="f-estado"><option value="Pendiente">Pendiente</option><option value="Pagado">Pagado</option></select>
+      </div>
+      <div class="fg" style="margin-bottom:0;grid-column:span 2;"><label>Método de pago</label><input type="text" id="f-metodo" placeholder="Ej: Transferencia Santander"></div>
+    </div>
+    <div class="fg" style="margin-bottom:1rem;"><label>Observación</label><input type="text" id="f-obs" placeholder="Notas adicionales (opcional)"></div>
+
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-dark" onclick="guardarFactura()">Guardar factura</button>
+      <button class="btn btn-ghost" onclick="cerrarFacturaModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- MODAL VENCIMIENTOS MASIVOS -->
 <div class="overlay" id="overlay-venc-bulk" onclick="if(event.target===this)cerrarVencBulk()">
@@ -1174,7 +1380,7 @@ const BASE=[
 const BASE_RUBROS=['Fertilizantes','Bioestimulantes','Coayudantes','Curasemillas','Fungicidas','Herbicidas','Insecticidas','Semillas Maíz','Semillas Girasol','Semillas Trigo','Semillas Soja'];
 const BASE_UNIDADES=['L','kg','gr','u','cajas','bolsas','—'];
 
-let inv=[], hist=[], rubros=[], unidades=[], notas=[], editIdx=null, detId=null, editProdId=null;
+let inv=[], hist=[], rubros=[], unidades=[], notas=[], facturas=[], editIdx=null, detId=null, editProdId=null;
 
 // ── PERSISTENCIA LOCAL ────────────────────────────────────
 function setSyncStatus(state,text){
@@ -1205,6 +1411,7 @@ async function fetchData(){
       // Firebase es la única fuente de verdad
       filas    = (data.filas && data.filas.length>0) ? data.filas : JSON.parse(JSON.stringify(FILAS_BASE));
       notas    = data.notas && data.notas.length>0 ? data.notas : [];
+      facturas = data.facturas && data.facturas.length>0 ? data.facturas : [];
       setSyncStatus('ok','Conectado · '+hist.length+' mov.');
     } else {
       // Firebase no devolvió datos — NO sobreescribir, mostrar error
@@ -1243,7 +1450,7 @@ async function saveAll(){
       setTimeout(saveAll, 1500);
       return;
     }
-    await window._fbSave({inv, rubros, unidades, filas, notas, ts: Date.now()});
+    await window._fbSave({inv, rubros, unidades, filas, notas, facturas, ts: Date.now()});
     setSyncStatus('ok','Guardado · '+hist.length+' mov.');
     setUltimaSync();
   }catch(e){
@@ -2111,7 +2318,7 @@ function showTab(tab){
   document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(btn=>btn.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
-  document.querySelectorAll('.nav-btn')[['dashboard','resumen','filas','movimiento','notas','historial','config'].indexOf(tab)].classList.add('active');
+  document.querySelectorAll('.nav-btn')[['dashboard','resumen','filas','movimiento','notas','facturas','historial','config'].indexOf(tab)].classList.add('active');
   if(tab==='historial')renderHistorial();
   if(tab==='config'){renderRubros();renderUnidades();renderConfigList();populateRubroSelects();populateCfgFilaSel();populateCfgUnidadSel();}
   if(tab==='filas')renderFilas();
@@ -2119,6 +2326,7 @@ function showTab(tab){
   if(tab==='movimiento'){populateMvFilaSelect();renderResumenMetrics();}
   if(tab==='dashboard')renderDashboard();
   if(tab==='notas')renderNotas();
+  if(tab==='facturas')renderFacturas();
 }
 
 // ── FILAS DEL GALPÓN ───────────────────────────────────────
@@ -3161,8 +3369,199 @@ function guardarEditNota(){
 
 async function saveNotas(){
   try{
-    if(window._fbReady) await window._fbSave({inv, rubros, unidades, filas, notas, ts: Date.now()});
+    if(window._fbReady) await window._fbSave({inv, rubros, unidades, filas, notas, facturas, ts: Date.now()});
   }catch(e){ console.error('saveNotas error',e); }
+}
+
+
+// ── FACTURAS ─────────────────────────────────────────────
+let _facturaMoneda = 'ARS';
+let _editFacturaId = null;
+
+function setFacturaMoneda(m, btn){
+  _facturaMoneda = m;
+  document.querySelectorAll('.fact-tab-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderFacturas();
+}
+
+function calcFacturaTotal(){
+  const neto=parseFloat(document.getElementById('f-neto').value)||0;
+  const iva21=parseFloat(document.getElementById('f-iva21').value)||0;
+  const iva105=parseFloat(document.getElementById('f-iva105').value)||0;
+  const percep=parseFloat(document.getElementById('f-percep').value)||0;
+  const otros=parseFloat(document.getElementById('f-otros').value)||0;
+  const total=neto+iva21+iva105+percep+otros;
+  document.getElementById('f-total-preview').textContent='$\u00a0'+total.toLocaleString('es-AR',{minimumFractionDigits:2});
+}
+
+function abrirFacturaModal(id){
+  _editFacturaId = id||null;
+  document.getElementById('fact-modal-moneda').textContent=_facturaMoneda;
+  if(id){
+    const f=facturas.find(x=>x.id===id);
+    if(!f)return;
+    document.getElementById('fact-modal-title').textContent='Editar factura';
+    document.getElementById('f-fecha').value=f.fecha||'';
+    document.getElementById('f-tipo').value=f.tipo||'Factura A';
+    document.getElementById('f-ptov').value=f.ptov||'';
+    document.getElementById('f-proveedor').value=f.proveedor||'';
+    document.getElementById('f-numero').value=f.numero||'';
+    document.getElementById('f-desc').value=f.desc||'';
+    document.getElementById('f-neto').value=f.neto||'';
+    document.getElementById('f-iva21').value=f.iva21||'';
+    document.getElementById('f-iva105').value=f.iva105||'';
+    document.getElementById('f-percep').value=f.percep||'';
+    document.getElementById('f-otros').value=f.otros||'';
+    document.getElementById('f-cae').value=f.cae||'';
+    document.getElementById('f-vtocae').value=f.vtocae||'';
+    document.getElementById('f-estado').value=f.estado||'Pendiente';
+    document.getElementById('f-metodo').value=f.metodo||'';
+    document.getElementById('f-obs').value=f.obs||'';
+  } else {
+    document.getElementById('fact-modal-title').textContent='Nueva factura';
+    ['f-fecha','f-tipo','f-ptov','f-proveedor','f-numero','f-desc','f-neto','f-iva21','f-iva105','f-percep','f-otros','f-cae','f-vtocae','f-metodo','f-obs'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value='';
+    });
+    document.getElementById('f-estado').value='Pendiente';
+    document.getElementById('f-fecha').value=new Date().toISOString().slice(0,10);
+  }
+  calcFacturaTotal();
+  document.getElementById('overlay-factura').classList.add('open');
+  setTimeout(()=>{
+    initAutocomplete('f-proveedor','ac-f-proveedor', ()=>[...new Set(facturas.map(x=>x.proveedor).filter(Boolean))]);
+  },50);
+}
+function cerrarFacturaModal(){
+  document.getElementById('overlay-factura').classList.remove('open');
+  _editFacturaId = null;
+}
+
+async function guardarFactura(){
+  const proveedor=document.getElementById('f-proveedor').value.trim();
+  if(!proveedor){ showToast('Ingresá el proveedor'); return; }
+  const neto=parseFloat(document.getElementById('f-neto').value)||0;
+  const iva21=parseFloat(document.getElementById('f-iva21').value)||0;
+  const iva105=parseFloat(document.getElementById('f-iva105').value)||0;
+  const percep=parseFloat(document.getElementById('f-percep').value)||0;
+  const otros=parseFloat(document.getElementById('f-otros').value)||0;
+  const total=neto+iva21+iva105+percep+otros;
+
+  const data = {
+    fecha: document.getElementById('f-fecha').value,
+    tipo: document.getElementById('f-tipo').value,
+    ptov: document.getElementById('f-ptov').value.trim(),
+    proveedor,
+    numero: document.getElementById('f-numero').value.trim(),
+    desc: document.getElementById('f-desc').value.trim(),
+    neto, iva21, iva105, percep, otros, total,
+    cae: document.getElementById('f-cae').value.trim(),
+    vtocae: document.getElementById('f-vtocae').value,
+    estado: document.getElementById('f-estado').value,
+    metodo: document.getElementById('f-metodo').value.trim(),
+    obs: document.getElementById('f-obs').value.trim(),
+    moneda: _facturaMoneda
+  };
+
+  if(_editFacturaId){
+    const idx=facturas.findIndex(x=>x.id===_editFacturaId);
+    if(idx>=0) facturas[idx]={...facturas[idx], ...data};
+  } else {
+    facturas.unshift({id:Date.now(), ...data});
+  }
+  cerrarFacturaModal();
+  renderFacturas();
+  await saveAll();
+  showToast('✓ Factura guardada');
+}
+
+async function eliminarFactura(id){
+  if(!confirm('¿Eliminar esta factura?'))return;
+  facturas=facturas.filter(x=>x.id!==id);
+  renderFacturas();
+  await saveAll();
+  showToast('Factura eliminada');
+}
+
+async function toggleFacturaEstado(id){
+  const f=facturas.find(x=>x.id===id);
+  if(!f)return;
+  f.estado = f.estado==='Pagado'?'Pendiente':'Pagado';
+  renderFacturas();
+  await saveAll();
+  showToast(f.estado==='Pagado'?'✓ Marcada como pagada':'Marcada como pendiente');
+}
+
+function fmtMonto(n){
+  return parseFloat((n||0).toFixed(2)).toLocaleString('es-AR',{minimumFractionDigits:2});
+}
+
+function renderFacturas(){
+  const tbody=document.getElementById('fact-tbody');
+  if(!tbody)return;
+  const buscar=(document.getElementById('fact-buscar')?.value||'').toLowerCase();
+  const filtroEstado=document.getElementById('fact-filtro-estado')?.value||'';
+
+  let data = facturas.filter(f=>(f.moneda||'ARS')===_facturaMoneda);
+  if(buscar) data = data.filter(f=>(f.proveedor||'').toLowerCase().includes(buscar)||(f.desc||'').toLowerCase().includes(buscar));
+  if(filtroEstado) data = data.filter(f=>f.estado===filtroEstado);
+  data.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+
+  // Métricas
+  const totalPend = data.filter(f=>f.estado==='Pendiente').reduce((s,f)=>s+(f.total||0),0);
+  const totalPagado = data.filter(f=>f.estado==='Pagado').reduce((s,f)=>s+(f.total||0),0);
+  const elMetrics=document.getElementById('fact-metrics');
+  if(elMetrics){
+    elMetrics.innerHTML=`
+      <div class="dash-pill"><div><div class="dp-lbl">Comprobantes</div><div class="dp-val">${data.length}</div></div></div>
+      <div class="dash-pill"><div><div class="dp-lbl">Total pendiente</div><div class="dp-val danger">$ ${fmtMonto(totalPend)}</div></div></div>
+      <div class="dash-pill"><div><div class="dp-lbl">Total pagado</div><div class="dp-val ok">$ ${fmtMonto(totalPagado)}</div></div></div>
+    `;
+  }
+
+  if(!data.length){
+    tbody.innerHTML=`<tr><td colspan="18" class="empty"><div class="ico">🧾</div>No hay facturas cargadas</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = data.map(f=>{
+    const totalCls = f.estado==='Pagado'?'pagado':'pendiente';
+    return `<tr>
+      <td>${f.fecha?new Date(f.fecha+'T00:00:00').toLocaleDateString('es-AR'):'—'}</td>
+      <td style="font-weight:500;">${f.proveedor||'—'}</td>
+      <td>${f.tipo||'—'}</td>
+      <td>${f.ptov||'—'}</td>
+      <td>${f.numero||'—'}</td>
+      <td class="fact-desc-cell" title="${f.desc||''}">${f.desc||'—'}</td>
+      <td style="text-align:right;">${fmtMonto(f.neto)}</td>
+      <td style="text-align:right;">${fmtMonto(f.iva21)}</td>
+      <td style="text-align:right;">${fmtMonto(f.iva105)}</td>
+      <td style="text-align:right;">${fmtMonto(f.percep)}</td>
+      <td style="text-align:right;">${fmtMonto(f.otros)}</td>
+      <td style="text-align:right;" class="fact-total ${totalCls}">${fmtMonto(f.total)}</td>
+      <td>${f.cae||'—'}</td>
+      <td>${f.vtocae?new Date(f.vtocae+'T00:00:00').toLocaleDateString('es-AR'):'—'}</td>
+      <td><button class="fact-estado-pill ${f.estado==='Pagado'?'pagado':'pendiente'}" onclick="toggleFacturaEstado(${f.id})">${f.estado}</button></td>
+      <td>${f.metodo||'—'}</td>
+      <td class="fact-obs-cell" title="${f.obs||''}">${f.obs||'—'}</td>
+      <td style="display:flex;gap:4px;">
+        <button class="btn-sm" onclick="abrirFacturaModal(${f.id})" title="Editar">✏</button>
+        <button class="btn-sm btn-sm-danger" onclick="eliminarFactura(${f.id})" title="Eliminar">×</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function exportarFacturasCSV(){
+  const data = facturas.filter(f=>(f.moneda||'ARS')===_facturaMoneda);
+  const h=['Fecha','Proveedor','Tipo','Pto.V','Número','Descripción','Neto','IVA21','IVA10.5','Percepcion IIBB','Otros Impuestos','Total','CAE','Vto.CAE','Estado','Metodo Pago','Observacion'];
+  const rows = data.map(f=>[f.fecha,f.proveedor,f.tipo,f.ptov,f.numero,f.desc,f.neto,f.iva21,f.iva105,f.percep,f.otros,f.total,f.cae,f.vtocae,f.estado,f.metodo,f.obs]);
+  const csv=[h,...rows].map(r=>r.map(v=>`"${v??''}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download='facturas_'+_facturaMoneda+'.csv';
+  a.click();
+  showToast('CSV exportado');
 }
 
 </script>
