@@ -438,7 +438,7 @@ tbody tr:hover td{background:#fafaf8;}
 .fact-tab-btn.active{background:var(--bg-sidebar);color:#fff;border-color:var(--bg-sidebar);}
 .fact-metrics{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1.1rem;}
 .fact-table-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow-x:auto;}
-table.fact-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:760px;}
+table.fact-table{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:auto;}
 table.fact-table thead th{background:#eeece6;padding:8px 10px;text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#4a4a3a;font-family:var(--mono);border-bottom:1px solid var(--border-dark);white-space:nowrap;position:sticky;top:0;}
 table.fact-table tbody td{padding:8px 10px;border-bottom:.5px solid var(--border);white-space:nowrap;color:var(--text);}
 .fact-cliente-cell{white-space:normal;word-break:break-word;min-width:180px;max-width:260px;line-height:1.3;}
@@ -457,7 +457,7 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
 .fact-row-toggle:hover{background:#fafaf8;color:var(--text);}
 .fact-detail-row{display:none;background:#f9f8f5;}
 .fact-detail-row.open{display:table-row;}
-.fact-detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px 18px;font-size:12px;}
+.fact-detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px 18px;font-size:12px;width:100%;box-sizing:border-box;}
 .fact-detail-item .fdi-lbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);margin-bottom:2px;}
 .fact-detail-item .fdi-val{font-size:13px;color:var(--text);font-weight:500;}
 .fact-detail-item.span2{grid-column:span 2;}
@@ -3525,7 +3525,7 @@ function renderFacturas(){
   }
 
   if(!data.length){
-    tbody.innerHTML=`<tr><td colspan="9" class="empty"><div class="ico">🧾</div>No hay facturas cargadas</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="8" class="empty"><div class="ico">🧾</div>No hay facturas cargadas</td></tr>`;
     return;
   }
 
@@ -3551,7 +3551,7 @@ function renderFacturas(){
       </td>
     </tr>
     <tr class="fact-detail-row" id="${rowId}">
-      <td colspan="9" style="padding:0;">
+      <td colspan="8" style="padding:0;">
         <div class="fact-detail-grid">
           <div class="fact-detail-item"><div class="fdi-lbl">Número</div><div class="fdi-val">${f.numero||'—'}</div></div>
           <div class="fact-detail-item"><div class="fdi-lbl">Punto de venta</div><div class="fdi-val">${f.ptov||'—'}</div></div>
