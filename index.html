@@ -1001,7 +1001,7 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
         <table class="fact-table">
           <thead><tr>
             <th>Fecha</th><th style="min-width:200px;">Cliente</th><th>Tipo</th>
-            <th style="text-align:right">Total</th><th>Estado</th><th>Vencimiento</th><th></th><th></th>
+            <th style="text-align:right">Total</th><th style="text-align:right" id="th-tc">T. Cambio</th><th>Estado</th><th>Vencimiento</th><th></th><th></th>
           </tr></thead>
           <tbody id="fact-tbody"></tbody>
         </table>
@@ -1020,7 +1020,7 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
     <div class="modal-sub">Comprobante en <span id="fact-modal-moneda">ARS</span></div>
 
     <div class="fact-form-row3" style="margin-bottom:11px;">
-      <div class="fg" style="margin-bottom:0;"><label>Fecha</label><input type="date" id="f-fecha"></div>
+      <div class="fg" style="margin-bottom:0;"><label>Fecha</label><input type="date" id="f-fecha" oninput="calcVtoPagoAuto()"></div>
       <div class="fg" style="margin-bottom:0;"><label>Tipo comprobante</label>
         <select id="f-tipo">
           <option>Factura A</option><option>Factura B</option><option>Factura C</option>
@@ -1042,7 +1042,10 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
       <div class="fg" style="margin-bottom:0;"><label>Descripción</label><input type="text" id="f-desc" placeholder="Detalle del comprobante"></div>
     </div>
 
-    <div class="fg" style="margin-bottom:11px;"><label>Neto</label><input type="number" step="0.01" id="f-neto" placeholder="0,00" oninput="calcFacturaTotal()" style="max-width:220px;"></div>
+    <div class="fact-form-row2" style="margin-bottom:11px;" id="f-neto-tc-row">
+      <div class="fg" style="margin-bottom:0;"><label id="f-neto-lbl">Neto</label><input type="number" step="0.01" id="f-neto" placeholder="0,00" oninput="calcFacturaTotal()"></div>
+      <div class="fg" style="margin-bottom:0;display:none;" id="f-tc-wrap"><label>Tipo de cambio (USD → ARS)</label><input type="number" step="0.01" id="f-tc" placeholder="Ej: 1432,50"></div>
+    </div>
 
     <!-- IMPUESTOS DINÁMICOS -->
     <div class="fg" style="margin-bottom:8px;">
@@ -1059,7 +1062,7 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
     <div class="fact-form-row3" style="margin-bottom:11px;">
       <div class="fg" style="margin-bottom:0;"><label>CAE</label><input type="text" id="f-cae" placeholder="Código CAE"></div>
       <div class="fg" style="margin-bottom:0;"><label>Vto. CAE</label><input type="date" id="f-vtocae"></div>
-      <div class="fg" style="margin-bottom:0;"><label>Vto. de pago</label><input type="date" id="f-vtopago"></div>
+      <div class="fg" style="margin-bottom:0;"><label>Vto. de pago <span style="font-weight:400;text-transform:none;color:var(--text-muted);">(automático, editable)</span></label><input type="date" id="f-vtopago" oninput="this.dataset.autoFilled='false'"></div>
     </div>
     <div class="fact-form-row3" style="margin-bottom:11px;">
       <div class="fg" style="margin-bottom:0;"><label>Estado de pago</label>
@@ -3341,6 +3344,31 @@ function setFacturaMoneda(m, btn){
   renderFacturas();
 }
 
+function toggleTcField(){
+  const tcWrap = document.getElementById('f-tc-wrap');
+  const netoLbl = document.getElementById('f-neto-lbl');
+  if(_facturaMoneda==='USD'){
+    tcWrap.style.display='block';
+    netoLbl.textContent='Neto (USD)';
+  } else {
+    tcWrap.style.display='none';
+    netoLbl.textContent='Neto';
+  }
+}
+
+function calcVtoPagoAuto(){
+  const fechaVal = document.getElementById('f-fecha').value;
+  if(!fechaVal) return;
+  const vtopagoEl = document.getElementById('f-vtopago');
+  // Solo auto-completar si el usuario no lo tocó a mano todavía en esta apertura del modal
+  if(vtopagoEl.dataset.autoFilled === 'true' || !vtopagoEl.value){
+    const d = new Date(fechaVal+'T00:00:00');
+    d.setDate(d.getDate()+20);
+    vtopagoEl.value = d.toISOString().slice(0,10);
+    vtopagoEl.dataset.autoFilled = 'true';
+  }
+}
+
 function calcFacturaTotal(){
   const neto=parseFloat(document.getElementById('f-neto').value)||0;
   let totalImp=0;
@@ -3354,6 +3382,8 @@ function calcFacturaTotal(){
 function abrirFacturaModal(id){
   _editFacturaId = id||null;
   document.getElementById('fact-modal-moneda').textContent=_facturaMoneda;
+  toggleTcField();
+  const vtopagoEl = document.getElementById('f-vtopago');
   if(id){
     const f=facturas.find(x=>x.id===id);
     if(!f)return;
@@ -3365,21 +3395,25 @@ function abrirFacturaModal(id){
     document.getElementById('f-numero').value=f.numero||'';
     document.getElementById('f-desc').value=f.desc||'';
     document.getElementById('f-neto').value=f.neto||'';
+    document.getElementById('f-tc').value=f.tc||'';
     document.getElementById('f-cae').value=f.cae||'';
     document.getElementById('f-vtocae').value=f.vtocae||'';
-    document.getElementById('f-vtopago').value=f.vtopago||'';
+    vtopagoEl.value=f.vtopago||'';
+    vtopagoEl.dataset.autoFilled = f.vtopago ? 'false' : 'true';
     document.getElementById('f-estado').value=f.estado||'Pendiente';
     document.getElementById('f-metodo').value=f.metodo||'';
     document.getElementById('f-obs').value=f.obs||'';
     cargarLineasImpuesto(f.impuestos||[]);
   } else {
     document.getElementById('fact-modal-title').textContent='Nueva factura';
-    ['f-fecha','f-tipo','f-ptov','f-proveedor','f-numero','f-desc','f-neto','f-cae','f-vtocae','f-vtopago','f-metodo','f-obs'].forEach(id=>{
+    ['f-fecha','f-tipo','f-ptov','f-proveedor','f-numero','f-desc','f-neto','f-tc','f-cae','f-vtocae','f-vtopago','f-metodo','f-obs'].forEach(id=>{
       const el=document.getElementById(id); if(el) el.value='';
     });
     document.getElementById('f-estado').value='Pendiente';
     document.getElementById('f-fecha').value=new Date().toISOString().slice(0,10);
+    vtopagoEl.dataset.autoFilled = 'true';
     cargarLineasImpuesto([]);
+    calcVtoPagoAuto();
   }
   calcFacturaTotal();
   document.getElementById('overlay-factura').classList.add('open');
@@ -3445,6 +3479,7 @@ async function guardarFactura(){
   const proveedor=document.getElementById('f-proveedor').value.trim();
   if(!proveedor){ showToast('Ingresá el proveedor'); return; }
   const neto=parseFloat(document.getElementById('f-neto').value)||0;
+  const tc=parseFloat(document.getElementById('f-tc').value)||0;
   const impuestos = leerLineasImpuesto();
   const totalImpuestos = impuestos.reduce((s,i)=>s+(i.monto||0),0);
   const total = neto + totalImpuestos;
@@ -3457,6 +3492,7 @@ async function guardarFactura(){
     numero: document.getElementById('f-numero').value.trim(),
     desc: document.getElementById('f-desc').value.trim(),
     neto, impuestos, total,
+    tc: _facturaMoneda==='USD' ? tc : 0,
     cae: document.getElementById('f-cae').value.trim(),
     vtocae: document.getElementById('f-vtocae').value,
     vtopago: document.getElementById('f-vtopago').value,
@@ -3519,24 +3555,28 @@ function renderFacturas(){
     elMetrics.innerHTML=`
       <div class="dash-pill"><div><div class="dp-lbl">Comprobantes</div><div class="dp-val">${data.length}</div></div></div>
       <div class="dash-pill"><div><div class="dp-lbl">Facturas pendientes</div><div class="dp-val danger">${pendientesArr.length}</div></div></div>
-      <div class="dash-pill"><div><div class="dp-lbl">Total pendiente</div><div class="dp-val danger">$ ${fmtMonto(totalPend)}</div></div></div>
-      <div class="dash-pill"><div><div class="dp-lbl">Total pagado</div><div class="dp-val ok">$ ${fmtMonto(totalPagado)}</div></div></div>
+      <div class="dash-pill"><div><div class="dp-lbl">Total pendiente</div><div class="dp-val danger">${_facturaMoneda==='USD'?'US$':'$'} ${fmtMonto(totalPend)}</div></div></div>
+      <div class="dash-pill"><div><div class="dp-lbl">Total pagado</div><div class="dp-val ok">${_facturaMoneda==='USD'?'US$':'$'} ${fmtMonto(totalPagado)}</div></div></div>
     `;
   }
 
   if(!data.length){
-    tbody.innerHTML=`<tr><td colspan="8" class="empty"><div class="ico">🧾</div>No hay facturas cargadas</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="9" class="empty"><div class="ico">🧾</div>No hay facturas cargadas</td></tr>`;
     return;
   }
+
+  const simbolo = _facturaMoneda==='USD' ? 'US$' : '$';
 
   tbody.innerHTML = data.map(f=>{
     const totalCls = f.estado==='Pagado'?'pagado':'pendiente';
     const rowId = 'fr-'+f.id;
+    const equivArs = (f.moneda==='USD' && f.tc) ? '<div style="font-size:10px;color:var(--text-muted);font-weight:400;">$ '+fmtMonto(f.total*f.tc)+'</div>' : '';
     return `<tr>
       <td>${f.fecha?new Date(f.fecha+'T00:00:00').toLocaleDateString('es-AR'):'—'}</td>
       <td class="fact-cliente-cell" style="font-weight:500;">${f.proveedor||'—'}</td>
       <td>${f.tipo||'—'}</td>
-      <td style="text-align:right;" class="fact-total ${totalCls}">${fmtMonto(f.total)}</td>
+      <td style="text-align:right;" class="fact-total ${totalCls}">${simbolo} ${fmtMonto(f.total)}${equivArs}</td>
+      <td style="text-align:right;">${(f.moneda==='USD'&&f.tc)?fmtMonto(f.tc):'—'}</td>
       <td>
         <select class="fact-estado-select ${f.estado==='Pagado'?'Pagado':'Pendiente'}" onchange="cambiarFacturaEstado(${f.id}, this.value, this)">
           <option value="Pendiente" ${f.estado!=='Pagado'?'selected':''}>Pendiente</option>
@@ -3551,20 +3591,20 @@ function renderFacturas(){
       </td>
     </tr>
     <tr class="fact-detail-row" id="${rowId}">
-      <td colspan="8" style="padding:0;">
+      <td colspan="9" style="padding:0;">
         <div class="fact-detail-grid">
           <div class="fact-detail-item"><div class="fdi-lbl">Número</div><div class="fdi-val">${f.numero||'—'}</div></div>
           <div class="fact-detail-item"><div class="fdi-lbl">Punto de venta</div><div class="fdi-val">${f.ptov||'—'}</div></div>
           <div class="fact-detail-item span2"><div class="fdi-lbl">Descripción</div><div class="fdi-val">${f.desc||'—'}</div></div>
           <div class="fact-detail-item"><div class="fdi-lbl">Método de pago</div><div class="fdi-val">${f.metodo||'—'}</div></div>
-          <div class="fact-detail-item"><div class="fdi-lbl">Neto</div><div class="fdi-val">$ ${fmtMonto(f.neto)}</div></div>
+          <div class="fact-detail-item"><div class="fdi-lbl">Neto</div><div class="fdi-val">${simbolo} ${fmtMonto(f.neto)}</div></div>
           <div class="fact-detail-item"><div class="fdi-lbl">CAE</div><div class="fdi-val">${f.cae||'—'}</div></div>
           <div class="fact-detail-item"><div class="fdi-lbl">Vto. CAE</div><div class="fdi-val">${f.vtocae?new Date(f.vtocae+'T00:00:00').toLocaleDateString('es-AR'):'—'}</div></div>
-          <div class="fact-detail-item"><div class="fdi-lbl">Moneda</div><div class="fdi-val">${f.moneda||'ARS'}</div></div>
+          <div class="fact-detail-item"><div class="fdi-lbl">Moneda</div><div class="fdi-val">${f.moneda||'ARS'}${f.moneda==='USD'&&f.tc?' (TC '+fmtMonto(f.tc)+')':''}</div></div>
           <div class="fact-detail-item span4"><div class="fdi-lbl">Impuestos / percepciones</div>
             <div class="fdi-imp-list">${
               (f.impuestos&&f.impuestos.length)
-                ? f.impuestos.map(i=>`<div class="fdi-imp-item"><span>${i.tipo}</span><span style="font-weight:600;">$ ${fmtMonto(i.monto)}</span></div>`).join('')
+                ? f.impuestos.map(i=>`<div class="fdi-imp-item"><span>${i.tipo}</span><span style="font-weight:600;">${simbolo} ${fmtMonto(i.monto)}</span></div>`).join('')
                 : '<span style="color:var(--text-muted);">Sin impuestos cargados</span>'
             }</div>
           </div>
@@ -3596,10 +3636,11 @@ async function cambiarFacturaEstado(id, nuevoEstado, selectEl){
 
 function exportarFacturasCSV(){
   const data = facturas.filter(f=>(f.moneda||'ARS')===_facturaMoneda);
-  const h=['Fecha','Cliente','Tipo','Pto.V','Número','Descripción','Neto','Impuestos','Total','CAE','Vto.CAE','Vto.Pago','Estado','Metodo Pago','Observacion'];
+  const h=['Fecha','Cliente','Tipo','Pto.V','Número','Descripción','Neto','Impuestos','Total','Tipo de Cambio','Total ARS equiv.','CAE','Vto.CAE','Vto.Pago','Estado','Metodo Pago','Observacion'];
   const rows = data.map(f=>{
     const impStr = (f.impuestos||[]).map(i=>`${i.tipo}: $${fmtMonto(i.monto)}`).join(' | ');
-    return [f.fecha,f.proveedor,f.tipo,f.ptov,f.numero,f.desc,f.neto,impStr,f.total,f.cae,f.vtocae,f.vtopago,f.estado,f.metodo,f.obs];
+    const equivArs = (f.moneda==='USD'&&f.tc) ? fmtMonto(f.total*f.tc) : '';
+    return [f.fecha,f.proveedor,f.tipo,f.ptov,f.numero,f.desc,f.neto,impStr,f.total,f.tc||'',equivArs,f.cae,f.vtocae,f.vtopago,f.estado,f.metodo,f.obs];
   });
   const csv=[h,...rows].map(r=>r.map(v=>`"${v??''}"`).join(',')).join('\n');
   const a=document.createElement('a');
