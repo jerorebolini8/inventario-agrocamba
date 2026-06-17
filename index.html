@@ -438,9 +438,10 @@ tbody tr:hover td{background:#fafaf8;}
 .fact-tab-btn.active{background:var(--bg-sidebar);color:#fff;border-color:var(--bg-sidebar);}
 .fact-metrics{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1.1rem;}
 .fact-table-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow-x:auto;}
-table.fact-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:1100px;}
+table.fact-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:760px;}
 table.fact-table thead th{background:#eeece6;padding:8px 10px;text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#4a4a3a;font-family:var(--mono);border-bottom:1px solid var(--border-dark);white-space:nowrap;position:sticky;top:0;}
 table.fact-table tbody td{padding:8px 10px;border-bottom:.5px solid var(--border);white-space:nowrap;color:var(--text);}
+.fact-cliente-cell{white-space:normal;word-break:break-word;min-width:180px;max-width:260px;line-height:1.3;}
 table.fact-table tbody tr:hover{background:#fafaf8;}
 table.fact-table tbody tr:last-child td{border-bottom:none;}
 .fact-total{font-weight:700;font-family:var(--mono);}
@@ -983,7 +984,7 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
         <div class="controls">
           <div class="srch">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="fact-buscar" placeholder="Buscar proveedor..." oninput="renderFacturas()">
+            <input type="text" id="fact-buscar" placeholder="Buscar cliente..." oninput="renderFacturas()">
           </div>
           <select class="flt" id="fact-filtro-estado" onchange="renderFacturas()">
             <option value="">Todos los estados</option>
@@ -999,7 +1000,7 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
       <div class="fact-table-wrap">
         <table class="fact-table">
           <thead><tr>
-            <th>Fecha</th><th>Proveedor</th><th>Tipo</th><th>Número</th>
+            <th>Fecha</th><th style="min-width:200px;">Cliente</th><th>Tipo</th>
             <th style="text-align:right">Total</th><th>Estado</th><th>Vencimiento</th><th></th><th></th>
           </tr></thead>
           <tbody id="fact-tbody"></tbody>
@@ -1029,9 +1030,9 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
       <div class="fg" style="margin-bottom:0;"><label>Punto de venta</label><input type="text" id="f-ptov" placeholder="0001"></div>
     </div>
 
-    <div class="fg" style="margin-bottom:11px;"><label>Proveedor</label>
+    <div class="fg" style="margin-bottom:11px;"><label>Cliente</label>
       <div class="ac-wrap">
-        <input type="text" id="f-proveedor" placeholder="Nombre del proveedor" autocomplete="off">
+        <input type="text" id="f-proveedor" placeholder="Nombre del cliente" autocomplete="off">
         <div class="ac-dropdown" id="ac-f-proveedor"></div>
       </div>
     </div>
@@ -1055,9 +1056,10 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
       <span class="ftp-val" id="f-total-preview">$ 0,00</span>
     </div>
 
-    <div class="fact-form-row2" style="margin-bottom:11px;">
+    <div class="fact-form-row3" style="margin-bottom:11px;">
       <div class="fg" style="margin-bottom:0;"><label>CAE</label><input type="text" id="f-cae" placeholder="Código CAE"></div>
       <div class="fg" style="margin-bottom:0;"><label>Vto. CAE</label><input type="date" id="f-vtocae"></div>
+      <div class="fg" style="margin-bottom:0;"><label>Vto. de pago</label><input type="date" id="f-vtopago"></div>
     </div>
     <div class="fact-form-row3" style="margin-bottom:11px;">
       <div class="fg" style="margin-bottom:0;"><label>Estado de pago</label>
@@ -3365,13 +3367,14 @@ function abrirFacturaModal(id){
     document.getElementById('f-neto').value=f.neto||'';
     document.getElementById('f-cae').value=f.cae||'';
     document.getElementById('f-vtocae').value=f.vtocae||'';
+    document.getElementById('f-vtopago').value=f.vtopago||'';
     document.getElementById('f-estado').value=f.estado||'Pendiente';
     document.getElementById('f-metodo').value=f.metodo||'';
     document.getElementById('f-obs').value=f.obs||'';
     cargarLineasImpuesto(f.impuestos||[]);
   } else {
     document.getElementById('fact-modal-title').textContent='Nueva factura';
-    ['f-fecha','f-tipo','f-ptov','f-proveedor','f-numero','f-desc','f-neto','f-cae','f-vtocae','f-metodo','f-obs'].forEach(id=>{
+    ['f-fecha','f-tipo','f-ptov','f-proveedor','f-numero','f-desc','f-neto','f-cae','f-vtocae','f-vtopago','f-metodo','f-obs'].forEach(id=>{
       const el=document.getElementById(id); if(el) el.value='';
     });
     document.getElementById('f-estado').value='Pendiente';
@@ -3456,6 +3459,7 @@ async function guardarFactura(){
     neto, impuestos, total,
     cae: document.getElementById('f-cae').value.trim(),
     vtocae: document.getElementById('f-vtocae').value,
+    vtopago: document.getElementById('f-vtopago').value,
     estado: document.getElementById('f-estado').value,
     metodo: document.getElementById('f-metodo').value.trim(),
     obs: document.getElementById('f-obs').value.trim(),
@@ -3530,9 +3534,8 @@ function renderFacturas(){
     const rowId = 'fr-'+f.id;
     return `<tr>
       <td>${f.fecha?new Date(f.fecha+'T00:00:00').toLocaleDateString('es-AR'):'—'}</td>
-      <td style="font-weight:500;">${f.proveedor||'—'}</td>
+      <td class="fact-cliente-cell" style="font-weight:500;">${f.proveedor||'—'}</td>
       <td>${f.tipo||'—'}</td>
-      <td>${f.numero||'—'}</td>
       <td style="text-align:right;" class="fact-total ${totalCls}">${fmtMonto(f.total)}</td>
       <td>
         <select class="fact-estado-select ${f.estado==='Pagado'?'Pagado':'Pendiente'}" onchange="cambiarFacturaEstado(${f.id}, this.value, this)">
@@ -3540,7 +3543,7 @@ function renderFacturas(){
           <option value="Pagado" ${f.estado==='Pagado'?'selected':''}>Pagado</option>
         </select>
       </td>
-      <td>${f.vtocae?new Date(f.vtocae+'T00:00:00').toLocaleDateString('es-AR'):'—'}</td>
+      <td>${f.vtopago?new Date(f.vtopago+'T00:00:00').toLocaleDateString('es-AR'):'—'}</td>
       <td><button class="fact-row-toggle" onclick="toggleFacturaDetalle('${rowId}')" id="btn-${rowId}">Ver detalle ▾</button></td>
       <td style="display:flex;gap:4px;">
         <button class="btn-sm" onclick="abrirFacturaModal(${f.id})" title="Editar">✏</button>
@@ -3550,11 +3553,13 @@ function renderFacturas(){
     <tr class="fact-detail-row" id="${rowId}">
       <td colspan="9" style="padding:0;">
         <div class="fact-detail-grid">
+          <div class="fact-detail-item"><div class="fdi-lbl">Número</div><div class="fdi-val">${f.numero||'—'}</div></div>
           <div class="fact-detail-item"><div class="fdi-lbl">Punto de venta</div><div class="fdi-val">${f.ptov||'—'}</div></div>
           <div class="fact-detail-item span2"><div class="fdi-lbl">Descripción</div><div class="fdi-val">${f.desc||'—'}</div></div>
           <div class="fact-detail-item"><div class="fdi-lbl">Método de pago</div><div class="fdi-val">${f.metodo||'—'}</div></div>
           <div class="fact-detail-item"><div class="fdi-lbl">Neto</div><div class="fdi-val">$ ${fmtMonto(f.neto)}</div></div>
           <div class="fact-detail-item"><div class="fdi-lbl">CAE</div><div class="fdi-val">${f.cae||'—'}</div></div>
+          <div class="fact-detail-item"><div class="fdi-lbl">Vto. CAE</div><div class="fdi-val">${f.vtocae?new Date(f.vtocae+'T00:00:00').toLocaleDateString('es-AR'):'—'}</div></div>
           <div class="fact-detail-item"><div class="fdi-lbl">Moneda</div><div class="fdi-val">${f.moneda||'ARS'}</div></div>
           <div class="fact-detail-item span4"><div class="fdi-lbl">Impuestos / percepciones</div>
             <div class="fdi-imp-list">${
@@ -3591,10 +3596,10 @@ async function cambiarFacturaEstado(id, nuevoEstado, selectEl){
 
 function exportarFacturasCSV(){
   const data = facturas.filter(f=>(f.moneda||'ARS')===_facturaMoneda);
-  const h=['Fecha','Proveedor','Tipo','Pto.V','Número','Descripción','Neto','Impuestos','Total','CAE','Vto.CAE','Estado','Metodo Pago','Observacion'];
+  const h=['Fecha','Cliente','Tipo','Pto.V','Número','Descripción','Neto','Impuestos','Total','CAE','Vto.CAE','Vto.Pago','Estado','Metodo Pago','Observacion'];
   const rows = data.map(f=>{
     const impStr = (f.impuestos||[]).map(i=>`${i.tipo}: $${fmtMonto(i.monto)}`).join(' | ');
-    return [f.fecha,f.proveedor,f.tipo,f.ptov,f.numero,f.desc,f.neto,impStr,f.total,f.cae,f.vtocae,f.estado,f.metodo,f.obs];
+    return [f.fecha,f.proveedor,f.tipo,f.ptov,f.numero,f.desc,f.neto,impStr,f.total,f.cae,f.vtocae,f.vtopago,f.estado,f.metodo,f.obs];
   });
   const csv=[h,...rows].map(r=>r.map(v=>`"${v??''}"`).join(',')).join('\n');
   const a=document.createElement('a');
