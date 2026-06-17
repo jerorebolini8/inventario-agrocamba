@@ -469,6 +469,15 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
 .fact-total-preview{background:var(--accent-light);border:1px solid var(--accent-border);border-radius:10px;padding:.7rem 1.1rem;display:flex;justify-content:space-between;align-items:center;margin:8px 0 4px;}
 .fact-total-preview .ftp-lbl{font-size:12.5px;color:var(--accent);font-weight:500;}
 .fact-total-preview .ftp-val{font-size:19px;font-weight:700;font-family:var(--mono);color:var(--accent);}
+/* Impuestos dinámicos en formulario */
+.imp-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.imp-row select{flex:1.4;padding:9px 10px;font-size:13px;font-family:var(--font);border:1px solid var(--border-dark);border-radius:8px;background:var(--bg);color:var(--text);outline:none;}
+.imp-row input{flex:1;padding:9px 10px;font-size:13px;font-family:var(--font);border:1px solid var(--border-dark);border-radius:8px;background:var(--bg);color:var(--text);outline:none;}
+.imp-row .imp-del{flex-shrink:0;width:30px;height:30px;border-radius:7px;border:1px solid var(--danger-border);background:transparent;color:var(--danger);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;}
+.imp-row .imp-del:hover{background:var(--danger-light);}
+/* Detalle factura: lista impuestos */
+.fdi-imp-list{display:flex;flex-direction:column;gap:3px;}
+.fdi-imp-list .fdi-imp-item{display:flex;justify-content:space-between;font-size:12.5px;}
 </style>
 </head>
 <body>
@@ -1000,69 +1009,6 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
   </div>
 
 </main>
-<!-- MODAL FACTURA -->
-<div class="overlay" id="overlay-factura" onclick="if(event.target===this)cerrarFacturaModal()">
-  <div class="fact-form-modal">
-    <button class="modal-close" onclick="cerrarFacturaModal()">×</button>
-    <div class="modal-title" id="fact-modal-title">Nueva factura</div>
-    <div class="modal-sub">Comprobante en <span id="fact-modal-moneda">ARS</span></div>
-
-    <div class="fact-form-row3" style="margin-bottom:11px;">
-      <div class="fg" style="margin-bottom:0;"><label>Fecha</label><input type="date" id="f-fecha"></div>
-      <div class="fg" style="margin-bottom:0;"><label>Tipo comprobante</label>
-        <select id="f-tipo">
-          <option>Factura A</option><option>Factura B</option><option>Factura C</option>
-          <option>Nota de Crédito A</option><option>Nota de Crédito B</option><option>Recibo</option>
-        </select>
-      </div>
-      <div class="fg" style="margin-bottom:0;"><label>Punto de venta</label><input type="text" id="f-ptov" placeholder="0001"></div>
-    </div>
-
-    <div class="fg" style="margin-bottom:11px;"><label>Proveedor</label>
-      <div class="ac-wrap">
-        <input type="text" id="f-proveedor" placeholder="Nombre del proveedor" autocomplete="off">
-        <div class="ac-dropdown" id="ac-f-proveedor"></div>
-      </div>
-    </div>
-
-    <div class="fact-form-row2" style="margin-bottom:11px;">
-      <div class="fg" style="margin-bottom:0;"><label>Número de comprobante</label><input type="text" id="f-numero" placeholder="00000000"></div>
-      <div class="fg" style="margin-bottom:0;"><label>Descripción</label><input type="text" id="f-desc" placeholder="Detalle del comprobante"></div>
-    </div>
-
-    <div class="fact-form-row3" style="margin-bottom:11px;">
-      <div class="fg" style="margin-bottom:0;"><label>Neto</label><input type="number" step="0.01" id="f-neto" placeholder="0,00" oninput="calcFacturaTotal()"></div>
-      <div class="fg" style="margin-bottom:0;"><label>IVA 21%</label><input type="number" step="0.01" id="f-iva21" placeholder="0,00" oninput="calcFacturaTotal()"></div>
-      <div class="fg" style="margin-bottom:0;"><label>IVA 10.5%</label><input type="number" step="0.01" id="f-iva105" placeholder="0,00" oninput="calcFacturaTotal()"></div>
-    </div>
-    <div class="fact-form-row2" style="margin-bottom:11px;">
-      <div class="fg" style="margin-bottom:0;"><label>Percepción IIBB</label><input type="number" step="0.01" id="f-percep" placeholder="0,00" oninput="calcFacturaTotal()"></div>
-      <div class="fg" style="margin-bottom:0;"><label>Otros impuestos</label><input type="number" step="0.01" id="f-otros" placeholder="0,00" oninput="calcFacturaTotal()"></div>
-    </div>
-
-    <div class="fact-total-preview">
-      <span class="ftp-lbl">Total calculado</span>
-      <span class="ftp-val" id="f-total-preview">$ 0,00</span>
-    </div>
-
-    <div class="fact-form-row2" style="margin-bottom:11px;">
-      <div class="fg" style="margin-bottom:0;"><label>CAE</label><input type="text" id="f-cae" placeholder="Código CAE"></div>
-      <div class="fg" style="margin-bottom:0;"><label>Vto. CAE</label><input type="date" id="f-vtocae"></div>
-    </div>
-    <div class="fact-form-row3" style="margin-bottom:11px;">
-      <div class="fg" style="margin-bottom:0;"><label>Estado de pago</label>
-        <select id="f-estado"><option value="Pendiente">Pendiente</option><option value="Pagado">Pagado</option></select>
-      </div>
-      <div class="fg" style="margin-bottom:0;grid-column:span 2;"><label>Método de pago</label><input type="text" id="f-metodo" placeholder="Ej: Transferencia Santander"></div>
-    </div>
-    <div class="fg" style="margin-bottom:1rem;"><label>Observación</label><input type="text" id="f-obs" placeholder="Notas adicionales (opcional)"></div>
-
-    <div style="display:flex;gap:10px;">
-      <button class="btn btn-dark" onclick="guardarFactura()">Guardar factura</button>
-      <button class="btn btn-ghost" onclick="cerrarFacturaModal()">Cancelar</button>
-    </div>
-  </div>
-</div>
 
 
 <!-- MODAL FACTURA -->
@@ -1095,14 +1041,13 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
       <div class="fg" style="margin-bottom:0;"><label>Descripción</label><input type="text" id="f-desc" placeholder="Detalle del comprobante"></div>
     </div>
 
-    <div class="fact-form-row3" style="margin-bottom:11px;">
-      <div class="fg" style="margin-bottom:0;"><label>Neto</label><input type="number" step="0.01" id="f-neto" placeholder="0,00" oninput="calcFacturaTotal()"></div>
-      <div class="fg" style="margin-bottom:0;"><label>IVA 21%</label><input type="number" step="0.01" id="f-iva21" placeholder="0,00" oninput="calcFacturaTotal()"></div>
-      <div class="fg" style="margin-bottom:0;"><label>IVA 10.5%</label><input type="number" step="0.01" id="f-iva105" placeholder="0,00" oninput="calcFacturaTotal()"></div>
-    </div>
-    <div class="fact-form-row2" style="margin-bottom:11px;">
-      <div class="fg" style="margin-bottom:0;"><label>Percepción IIBB</label><input type="number" step="0.01" id="f-percep" placeholder="0,00" oninput="calcFacturaTotal()"></div>
-      <div class="fg" style="margin-bottom:0;"><label>Otros impuestos</label><input type="number" step="0.01" id="f-otros" placeholder="0,00" oninput="calcFacturaTotal()"></div>
+    <div class="fg" style="margin-bottom:11px;"><label>Neto</label><input type="number" step="0.01" id="f-neto" placeholder="0,00" oninput="calcFacturaTotal()" style="max-width:220px;"></div>
+
+    <!-- IMPUESTOS DINÁMICOS -->
+    <div class="fg" style="margin-bottom:8px;">
+      <label>Impuestos / percepciones</label>
+      <div id="f-impuestos-list"></div>
+      <button type="button" class="btn-export" onclick="agregarLineaImpuesto()" style="margin-top:6px;">+ Agregar impuesto</button>
     </div>
 
     <div class="fact-total-preview">
@@ -3396,11 +3341,11 @@ function setFacturaMoneda(m, btn){
 
 function calcFacturaTotal(){
   const neto=parseFloat(document.getElementById('f-neto').value)||0;
-  const iva21=parseFloat(document.getElementById('f-iva21').value)||0;
-  const iva105=parseFloat(document.getElementById('f-iva105').value)||0;
-  const percep=parseFloat(document.getElementById('f-percep').value)||0;
-  const otros=parseFloat(document.getElementById('f-otros').value)||0;
-  const total=neto+iva21+iva105+percep+otros;
+  let totalImp=0;
+  document.querySelectorAll('#f-impuestos-list .imp-row input').forEach(inp=>{
+    totalImp += parseFloat(inp.value)||0;
+  });
+  const total=neto+totalImp;
   document.getElementById('f-total-preview').textContent='$\u00a0'+total.toLocaleString('es-AR',{minimumFractionDigits:2});
 }
 
@@ -3418,22 +3363,20 @@ function abrirFacturaModal(id){
     document.getElementById('f-numero').value=f.numero||'';
     document.getElementById('f-desc').value=f.desc||'';
     document.getElementById('f-neto').value=f.neto||'';
-    document.getElementById('f-iva21').value=f.iva21||'';
-    document.getElementById('f-iva105').value=f.iva105||'';
-    document.getElementById('f-percep').value=f.percep||'';
-    document.getElementById('f-otros').value=f.otros||'';
     document.getElementById('f-cae').value=f.cae||'';
     document.getElementById('f-vtocae').value=f.vtocae||'';
     document.getElementById('f-estado').value=f.estado||'Pendiente';
     document.getElementById('f-metodo').value=f.metodo||'';
     document.getElementById('f-obs').value=f.obs||'';
+    cargarLineasImpuesto(f.impuestos||[]);
   } else {
     document.getElementById('fact-modal-title').textContent='Nueva factura';
-    ['f-fecha','f-tipo','f-ptov','f-proveedor','f-numero','f-desc','f-neto','f-iva21','f-iva105','f-percep','f-otros','f-cae','f-vtocae','f-metodo','f-obs'].forEach(id=>{
+    ['f-fecha','f-tipo','f-ptov','f-proveedor','f-numero','f-desc','f-neto','f-cae','f-vtocae','f-metodo','f-obs'].forEach(id=>{
       const el=document.getElementById(id); if(el) el.value='';
     });
     document.getElementById('f-estado').value='Pendiente';
     document.getElementById('f-fecha').value=new Date().toISOString().slice(0,10);
+    cargarLineasImpuesto([]);
   }
   calcFacturaTotal();
   document.getElementById('overlay-factura').classList.add('open');
@@ -3446,15 +3389,62 @@ function cerrarFacturaModal(){
   _editFacturaId = null;
 }
 
+// ── IMPUESTOS DINÁMICOS ──────────────────────────────────
+const TIPOS_IMPUESTO = ['IVA 21%','IVA 10.5%','IVA 27%','Percepción IIBB','Percepción IVA','Retención Ganancias','Impuesto al Cheque','Otros'];
+let _impCounter = 0;
+
+function cargarLineasImpuesto(items){
+  const list = document.getElementById('f-impuestos-list');
+  list.innerHTML = '';
+  _impCounter = 0;
+  if(!items.length){
+    agregarLineaImpuesto();
+  } else {
+    items.forEach(it=>agregarLineaImpuesto(it.tipo, it.monto));
+  }
+}
+
+function agregarLineaImpuesto(tipo, monto){
+  const list = document.getElementById('f-impuestos-list');
+  const rowId = 'imp-' + (_impCounter++);
+  const row = document.createElement('div');
+  row.className = 'imp-row';
+  row.id = rowId;
+  row.innerHTML = `
+    <select onchange="calcFacturaTotal()">
+      ${TIPOS_IMPUESTO.map(t=>`<option value="${t}" ${t===tipo?'selected':''}>${t}</option>`).join('')}
+    </select>
+    <input type="number" step="0.01" placeholder="0,00" value="${monto!=null?monto:''}" oninput="calcFacturaTotal()">
+    <button type="button" class="imp-del" onclick="quitarLineaImpuesto('${rowId}')" title="Quitar">×</button>
+  `;
+  list.appendChild(row);
+  calcFacturaTotal();
+}
+
+function quitarLineaImpuesto(rowId){
+  const row = document.getElementById(rowId);
+  if(row) row.remove();
+  calcFacturaTotal();
+}
+
+function leerLineasImpuesto(){
+  const rows = document.querySelectorAll('#f-impuestos-list .imp-row');
+  const result = [];
+  rows.forEach(row=>{
+    const tipo = row.querySelector('select').value;
+    const monto = parseFloat(row.querySelector('input').value)||0;
+    if(monto !== 0 || rows.length===1) result.push({tipo, monto});
+  });
+  return result;
+}
+
 async function guardarFactura(){
   const proveedor=document.getElementById('f-proveedor').value.trim();
   if(!proveedor){ showToast('Ingresá el proveedor'); return; }
   const neto=parseFloat(document.getElementById('f-neto').value)||0;
-  const iva21=parseFloat(document.getElementById('f-iva21').value)||0;
-  const iva105=parseFloat(document.getElementById('f-iva105').value)||0;
-  const percep=parseFloat(document.getElementById('f-percep').value)||0;
-  const otros=parseFloat(document.getElementById('f-otros').value)||0;
-  const total=neto+iva21+iva105+percep+otros;
+  const impuestos = leerLineasImpuesto();
+  const totalImpuestos = impuestos.reduce((s,i)=>s+(i.monto||0),0);
+  const total = neto + totalImpuestos;
 
   const data = {
     fecha: document.getElementById('f-fecha').value,
@@ -3463,7 +3453,7 @@ async function guardarFactura(){
     proveedor,
     numero: document.getElementById('f-numero').value.trim(),
     desc: document.getElementById('f-desc').value.trim(),
-    neto, iva21, iva105, percep, otros, total,
+    neto, impuestos, total,
     cae: document.getElementById('f-cae').value.trim(),
     vtocae: document.getElementById('f-vtocae').value,
     estado: document.getElementById('f-estado').value,
@@ -3564,12 +3554,15 @@ function renderFacturas(){
           <div class="fact-detail-item span2"><div class="fdi-lbl">Descripción</div><div class="fdi-val">${f.desc||'—'}</div></div>
           <div class="fact-detail-item"><div class="fdi-lbl">Método de pago</div><div class="fdi-val">${f.metodo||'—'}</div></div>
           <div class="fact-detail-item"><div class="fdi-lbl">Neto</div><div class="fdi-val">$ ${fmtMonto(f.neto)}</div></div>
-          <div class="fact-detail-item"><div class="fdi-lbl">IVA 21%</div><div class="fdi-val">$ ${fmtMonto(f.iva21)}</div></div>
-          <div class="fact-detail-item"><div class="fdi-lbl">IVA 10.5%</div><div class="fdi-val">$ ${fmtMonto(f.iva105)}</div></div>
-          <div class="fact-detail-item"><div class="fdi-lbl">Percepción IIBB</div><div class="fdi-val">$ ${fmtMonto(f.percep)}</div></div>
-          <div class="fact-detail-item"><div class="fdi-lbl">Otros impuestos</div><div class="fdi-val">$ ${fmtMonto(f.otros)}</div></div>
           <div class="fact-detail-item"><div class="fdi-lbl">CAE</div><div class="fdi-val">${f.cae||'—'}</div></div>
           <div class="fact-detail-item"><div class="fdi-lbl">Moneda</div><div class="fdi-val">${f.moneda||'ARS'}</div></div>
+          <div class="fact-detail-item span4"><div class="fdi-lbl">Impuestos / percepciones</div>
+            <div class="fdi-imp-list">${
+              (f.impuestos&&f.impuestos.length)
+                ? f.impuestos.map(i=>`<div class="fdi-imp-item"><span>${i.tipo}</span><span style="font-weight:600;">$ ${fmtMonto(i.monto)}</span></div>`).join('')
+                : '<span style="color:var(--text-muted);">Sin impuestos cargados</span>'
+            }</div>
+          </div>
           <div class="fact-detail-item span4"><div class="fdi-lbl">Observación</div><div class="fdi-val">${f.obs||'—'}</div></div>
         </div>
       </td>
@@ -3598,8 +3591,11 @@ async function cambiarFacturaEstado(id, nuevoEstado, selectEl){
 
 function exportarFacturasCSV(){
   const data = facturas.filter(f=>(f.moneda||'ARS')===_facturaMoneda);
-  const h=['Fecha','Proveedor','Tipo','Pto.V','Número','Descripción','Neto','IVA21','IVA10.5','Percepcion IIBB','Otros Impuestos','Total','CAE','Vto.CAE','Estado','Metodo Pago','Observacion'];
-  const rows = data.map(f=>[f.fecha,f.proveedor,f.tipo,f.ptov,f.numero,f.desc,f.neto,f.iva21,f.iva105,f.percep,f.otros,f.total,f.cae,f.vtocae,f.estado,f.metodo,f.obs]);
+  const h=['Fecha','Proveedor','Tipo','Pto.V','Número','Descripción','Neto','Impuestos','Total','CAE','Vto.CAE','Estado','Metodo Pago','Observacion'];
+  const rows = data.map(f=>{
+    const impStr = (f.impuestos||[]).map(i=>`${i.tipo}: $${fmtMonto(i.monto)}`).join(' | ');
+    return [f.fecha,f.proveedor,f.tipo,f.ptov,f.numero,f.desc,f.neto,impStr,f.total,f.cae,f.vtocae,f.estado,f.metodo,f.obs];
+  });
   const csv=[h,...rows].map(r=>r.map(v=>`"${v??''}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));
