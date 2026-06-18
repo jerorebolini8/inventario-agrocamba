@@ -462,6 +462,36 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
 .fact-detail-item .fdi-val{font-size:13px;color:var(--text);font-weight:500;}
 .fact-detail-item.span2{grid-column:span 2;}
 .fact-detail-item.span4{grid-column:span 4;}
+
+/* VENCIMIENTOS — filas resaltadas */
+tr.fact-row-vencida td{background:#fff0f0;}
+tr.fact-row-porvencer td{background:#fff6eb;}
+tr.fact-row-vencida:hover td, tr.fact-row-porvencer:hover td{filter:brightness(0.98);}
+.fact-faltan{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:10px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;}
+.fact-faltan.verde{background:#d1fae5;color:#065f46;}
+.fact-faltan.amarillo{background:#fef9c3;color:#854d0e;}
+.fact-faltan.naranja{background:#ffe4cc;color:#9a3412;}
+.fact-faltan.rojo{background:#fee2e2;color:#991b1b;}
+.fact-faltan.gris{background:#f0ede6;color:var(--text-muted);}
+
+/* ALERTA VENCIDAS */
+.fact-alert-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fde8e8;border:1.5px solid #e57373;border-radius:10px;padding:11px 16px;margin-bottom:1rem;cursor:pointer;transition:background .15s;}
+.fact-alert-banner:hover{background:#fbdbdb;}
+.fact-alert-banner .fab-left{display:flex;align-items:center;gap:10px;}
+.fact-alert-banner .fab-icon{font-size:18px;}
+.fact-alert-banner .fab-text{font-size:13px;font-weight:600;color:#7a1515;}
+.fact-alert-banner .fab-sub{font-size:12px;color:#9a3030;margin-top:1px;}
+.fact-alert-banner .fab-arrow{font-size:13px;color:#991b1b;font-weight:600;}
+
+/* WIDGET PROXIMOS VENCIMIENTOS */
+.fact-widget{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.25rem;margin-bottom:1.25rem;}
+.fact-widget-title{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);margin-bottom:.85rem;display:flex;align-items:center;gap:6px;}
+.fact-widget-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:.5px solid var(--border);font-size:13px;gap:10px;}
+.fact-widget-row:last-child{border-bottom:none;}
+.fact-widget-row .fwr-info{display:flex;align-items:center;gap:8px;min-width:0;flex:1;}
+.fact-widget-row .fwr-fecha{font-family:var(--mono);font-size:12px;color:var(--text-muted);flex-shrink:0;}
+.fact-widget-row .fwr-cliente{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fact-widget-row .fwr-monto{font-family:var(--mono);font-weight:600;font-size:12.5px;flex-shrink:0;}
 .fact-desc-cell{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .fact-obs-cell{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted);font-size:11.5px;}
 .fact-form-modal{background:var(--bg-card);border-radius:14px;padding:1.75rem;width:680px;max-width:96vw;max-height:90vh;overflow-y:auto;position:relative;}
@@ -975,7 +1005,9 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
       <button class="btn btn-dark" onclick="abrirFacturaModal()">+ Nueva factura</button>
     </div>
     <div class="content">
+      <div id="fact-alert-banner-wrap"></div>
       <div class="fact-metrics" id="fact-metrics"></div>
+      <div id="fact-widget-wrap"></div>
       <div class="fact-toolbar">
         <div class="fact-tabs">
           <button class="fact-tab-btn active" onclick="setFacturaMoneda('ARS',this)">Comp. ARS</button>
@@ -1001,7 +1033,7 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
         <table class="fact-table">
           <thead><tr>
             <th>Fecha</th><th style="min-width:200px;">Cliente</th><th>Tipo</th>
-            <th style="text-align:right">Total</th><th style="text-align:right" id="th-tc">T. Cambio</th><th>Estado</th><th>Vencimiento</th><th></th><th></th>
+            <th style="text-align:right">Total</th><th style="text-align:right" id="th-tc">T. Cambio</th><th>Estado</th><th>Vencimiento</th><th>Faltan</th><th></th><th></th>
           </tr></thead>
           <tbody id="fact-tbody"></tbody>
         </table>
@@ -3335,10 +3367,12 @@ async function saveNotas(){
 
 // ── FACTURAS ─────────────────────────────────────────────
 let _facturaMoneda = 'ARS';
+let _facturaVencFiltro = '';
 let _editFacturaId = null;
 
 function setFacturaMoneda(m, btn){
   _facturaMoneda = m;
+  _facturaVencFiltro = '';
   document.querySelectorAll('.fact-tab-btn').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   renderFacturas();
@@ -3535,6 +3569,31 @@ function fmtMonto(n){
   return parseFloat((n||0).toFixed(2)).toLocaleString('es-AR',{minimumFractionDigits:2});
 }
 
+// ── HELPERS DE VENCIMIENTO ──────────────────────────────
+function diasVenc(vtopago){
+  if(!vtopago) return null;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const v = new Date(vtopago+'T00:00:00');
+  return Math.round((v-hoy)/(1000*60*60*24));
+}
+function vencColor(dias){
+  if(dias===null) return 'gris';
+  if(dias<0) return 'rojo';
+  if(dias<=7) return 'naranja';
+  if(dias<=15) return 'amarillo';
+  return 'verde';
+}
+function vencFaltanLbl(dias){
+  if(dias===null) return '—';
+  if(dias<0) return `Vencida hace ${Math.abs(dias)}d`;
+  if(dias===0) return 'Vence hoy';
+  if(dias===1) return '1 día';
+  return `${dias} días`;
+}
+function vencFaltanIcon(color){
+  return {verde:'🟢',amarillo:'🟡',naranja:'🟠',rojo:'🔴',gris:'⚪'}[color]||'';
+}
+
 function renderFacturas(){
   const tbody=document.getElementById('fact-tbody');
   if(!tbody)return;
@@ -3544,34 +3603,119 @@ function renderFacturas(){
   let data = facturas.filter(f=>(f.moneda||'ARS')===_facturaMoneda);
   if(buscar) data = data.filter(f=>(f.proveedor||'').toLowerCase().includes(buscar)||(f.desc||'').toLowerCase().includes(buscar));
   if(filtroEstado) data = data.filter(f=>f.estado===filtroEstado);
+  if(_facturaVencFiltro){
+    data = data.filter(f=>{
+      if(f.estado==='Pagado') return false;
+      const d = diasVenc(f.vtopago);
+      if(_facturaVencFiltro==='vencidas') return d!==null && d<0;
+      if(_facturaVencFiltro==='proximas') return d!==null && d>=0 && d<=7;
+      return true;
+    });
+  }
   data.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
 
-  // Métricas
+  const simbolo = _facturaMoneda==='USD' ? 'US$' : '$';
+
+  // Métricas base
   const pendientesArr = data.filter(f=>f.estado==='Pendiente');
   const totalPend = pendientesArr.reduce((s,f)=>s+(f.total||0),0);
   const totalPagado = data.filter(f=>f.estado==='Pagado').reduce((s,f)=>s+(f.total||0),0);
+
+  // Métricas de vencimiento (sobre pendientes, no pagadas)
+  const todasPendientes = facturas.filter(f=>(f.moneda||'ARS')===_facturaMoneda && f.estado==='Pendiente');
+  const vencidas = todasPendientes.filter(f=>{const d=diasVenc(f.vtopago); return d!==null && d<0;});
+  const proximas = todasPendientes.filter(f=>{const d=diasVenc(f.vtopago); return d!==null && d>=0 && d<=7;});
+  const alDia = todasPendientes.filter(f=>{const d=diasVenc(f.vtopago); return d===null || d>7;});
+
   const elMetrics=document.getElementById('fact-metrics');
   if(elMetrics){
     elMetrics.innerHTML=`
       <div class="dash-pill"><div><div class="dp-lbl">Comprobantes</div><div class="dp-val">${data.length}</div></div></div>
       <div class="dash-pill"><div><div class="dp-lbl">Facturas pendientes</div><div class="dp-val danger">${pendientesArr.length}</div></div></div>
-      <div class="dash-pill"><div><div class="dp-lbl">Total pendiente</div><div class="dp-val danger">${_facturaMoneda==='USD'?'US$':'$'} ${fmtMonto(totalPend)}</div></div></div>
-      <div class="dash-pill"><div><div class="dp-lbl">Total pagado</div><div class="dp-val ok">${_facturaMoneda==='USD'?'US$':'$'} ${fmtMonto(totalPagado)}</div></div></div>
+      <div class="dash-pill"><div><div class="dp-lbl">Total pendiente</div><div class="dp-val danger">${simbolo} ${fmtMonto(totalPend)}</div></div></div>
+      <div class="dash-pill"><div><div class="dp-lbl">Total pagado</div><div class="dp-val ok">${simbolo} ${fmtMonto(totalPagado)}</div></div></div>
+      <div class="dash-pill" style="cursor:pointer;" onclick="setFacturaVencFiltro('vencidas')"><div><div class="dp-lbl">🔴 Vencidas</div><div class="dp-val danger">${vencidas.length}</div></div></div>
+      <div class="dash-pill" style="cursor:pointer;" onclick="setFacturaVencFiltro('proximas')"><div><div class="dp-lbl">🟠 Vencen en 7 días</div><div class="dp-val warn">${proximas.length}</div></div></div>
+      <div class="dash-pill"><div><div class="dp-lbl">🟢 Al día</div><div class="dp-val ok">${alDia.length}</div></div></div>
     `;
   }
 
-  if(!data.length){
-    tbody.innerHTML=`<tr><td colspan="9" class="empty"><div class="ico">🧾</div>No hay facturas cargadas</td></tr>`;
-    return;
+  // Banner de alerta si hay vencidas
+  const bannerWrap = document.getElementById('fact-alert-banner-wrap');
+  if(bannerWrap){
+    if(vencidas.length){
+      const montoVencidas = vencidas.reduce((s,f)=>s+(f.total||0),0);
+      bannerWrap.innerHTML = `
+        <div class="fact-alert-banner" onclick="setFacturaVencFiltro('vencidas')">
+          <div class="fab-left">
+            <span class="fab-icon">⚠️</span>
+            <div>
+              <div class="fab-text">Tenés ${vencidas.length} factura${vencidas.length>1?'s':''} vencida${vencidas.length>1?'s':''}</div>
+              <div class="fab-sub">Monto total: ${simbolo} ${fmtMonto(montoVencidas)}</div>
+            </div>
+          </div>
+          <div class="fab-arrow">Ver →</div>
+        </div>`;
+    } else {
+      bannerWrap.innerHTML = '';
+    }
   }
 
-  const simbolo = _facturaMoneda==='USD' ? 'US$' : '$';
+  // Widget próximos vencimientos
+  const widgetWrap = document.getElementById('fact-widget-wrap');
+  if(widgetWrap){
+    const proximosOrdenados = todasPendientes
+      .filter(f=>f.vtopago)
+      .sort((a,b)=>(a.vtopago||'').localeCompare(b.vtopago||''))
+      .slice(0,6);
+    if(proximosOrdenados.length){
+      widgetWrap.innerHTML = `
+        <div class="fact-widget">
+          <div class="fact-widget-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:13px;height:13px;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Próximos vencimientos
+          </div>
+          ${proximosOrdenados.map(f=>{
+            const d = diasVenc(f.vtopago);
+            const color = vencColor(d);
+            const fechaFmt = new Date(f.vtopago+'T00:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
+            return `<div class="fact-widget-row">
+              <div class="fwr-info">
+                <span class="fact-faltan ${color}" style="flex-shrink:0;">${vencFaltanIcon(color)}</span>
+                <span class="fwr-fecha">${fechaFmt}</span>
+                <span class="fwr-cliente" title="${f.proveedor}">${f.proveedor||'—'}</span>
+              </div>
+              <span class="fwr-monto">${f.moneda==='USD'?'US$':'$'} ${fmtMonto(f.total)}</span>
+            </div>`;
+          }).join('')}
+        </div>`;
+    } else {
+      widgetWrap.innerHTML = '';
+    }
+  }
+
+  if(!data.length){
+    tbody.innerHTML=`<tr><td colspan="10" class="empty"><div class="ico">🧾</div>No hay facturas cargadas</td></tr>`;
+    return;
+  }
 
   tbody.innerHTML = data.map(f=>{
     const totalCls = f.estado==='Pagado'?'pagado':'pendiente';
     const rowId = 'fr-'+f.id;
     const equivArs = (f.moneda==='USD' && f.tc) ? '<div style="font-size:10px;color:var(--text-muted);font-weight:400;">$ '+fmtMonto(f.total*f.tc)+'</div>' : '';
-    return `<tr>
+
+    const dias = f.estado==='Pagado' ? null : diasVenc(f.vtopago);
+    const color = f.estado==='Pagado' ? 'gris' : vencColor(dias);
+    let rowCls = '';
+    if(f.estado!=='Pagado'){
+      if(color==='rojo') rowCls='fact-row-vencida';
+      else if(color==='naranja') rowCls='fact-row-porvencer';
+    }
+    const faltanHtml = f.estado==='Pagado'
+      ? '<span class="fact-faltan gris">Pagado</span>'
+      : `<span class="fact-faltan ${color}">${vencFaltanIcon(color)} ${vencFaltanLbl(dias)}</span>`;
+
+    return `<tr class="${rowCls}">
       <td>${f.fecha?new Date(f.fecha+'T00:00:00').toLocaleDateString('es-AR'):'—'}</td>
       <td class="fact-cliente-cell" style="font-weight:500;">${f.proveedor||'—'}</td>
       <td>${f.tipo||'—'}</td>
@@ -3584,14 +3728,15 @@ function renderFacturas(){
         </select>
       </td>
       <td>${f.vtopago?new Date(f.vtopago+'T00:00:00').toLocaleDateString('es-AR'):'—'}</td>
+      <td>${faltanHtml}</td>
       <td><button class="fact-row-toggle" onclick="toggleFacturaDetalle('${rowId}')" id="btn-${rowId}">Ver detalle ▾</button></td>
       <td style="display:flex;gap:4px;">
         <button class="btn-sm" onclick="abrirFacturaModal(${f.id})" title="Editar">✏</button>
         <button class="btn-sm btn-sm-danger" onclick="eliminarFactura(${f.id})" title="Eliminar">×</button>
       </td>
     </tr>
-    <tr class="fact-detail-row" id="${rowId}">
-      <td colspan="9" style="padding:0;">
+    <tr class="fact-detail-row ${rowCls}" id="${rowId}">
+      <td colspan="10" style="padding:0;">
         <div class="fact-detail-grid">
           <div class="fact-detail-item"><div class="fdi-lbl">Número</div><div class="fdi-val">${f.numero||'—'}</div></div>
           <div class="fact-detail-item"><div class="fdi-lbl">Punto de venta</div><div class="fdi-val">${f.ptov||'—'}</div></div>
@@ -3613,6 +3758,11 @@ function renderFacturas(){
       </td>
     </tr>`;
   }).join('');
+}
+
+function setFacturaVencFiltro(tipo){
+  _facturaVencFiltro = (_facturaVencFiltro===tipo) ? '' : tipo;
+  renderFacturas();
 }
 
 function toggleFacturaDetalle(rowId){
