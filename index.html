@@ -1291,13 +1291,42 @@ tr.fact-row-vencida:hover td, tr.fact-row-porvencer:hover td{filter:brightness(0
 
 <!-- MODAL EDITAR PRODUCTO (config) -->
 <div class="overlay" id="overlay-edit-prod" onclick="if(event.target===this)cerrarEditProd()">
-  <div class="modal" style="width:440px;">
+  <div class="modal" style="width:560px;max-height:90vh;overflow-y:auto;">
     <button class="modal-close" onclick="cerrarEditProd()">×</button>
     <div class="modal-title">Editar producto</div>
     <div class="modal-sub" id="edit-prod-sub">—</div>
-    <div class="fg"><label>Nombre</label><input type="text" id="ep-nombre"></div>
-    <div class="fg"><label>Rubro</label><select id="ep-rubro"></select></div>
-    <div class="fg"><label>Stock mínimo (umbral de alerta)</label><input type="number" id="ep-minimo" min="0" step="1" placeholder="20"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px;">
+      <div class="fg" style="margin-bottom:0;grid-column:span 2;"><label>Nombre</label><input type="text" id="ep-nombre"></div>
+      <div class="fg" style="margin-bottom:0;"><label>Rubro</label><select id="ep-rubro"></select></div>
+      <div class="fg" style="margin-bottom:0;"><label>Unidad de medida</label><select id="ep-unidad"></select></div>
+    </div>
+
+    <div style="background:#f9f8f5;border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:11px;">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);margin-bottom:.75rem;">Stock</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;">
+        <div class="fg" style="margin-bottom:0;"><label>Stock físico actual</label><input type="number" step="0.01" id="ep-fisico" placeholder="0"></div>
+        <div class="fg" style="margin-bottom:0;"><label>Stock mínimo (alerta)</label><input type="number" id="ep-minimo" min="0" step="1" placeholder="20"></div>
+      </div>
+    </div>
+
+    <div style="background:#f9f8f5;border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:11px;">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);margin-bottom:.75rem;">Lote y vencimiento</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;">
+        <div class="fg" style="margin-bottom:0;"><label>Número de lote</label><input type="text" id="ep-lote" placeholder="Ej: ACD4B00004"></div>
+        <div class="fg" style="margin-bottom:0;"><label>Fecha de vencimiento</label><input type="date" id="ep-venc"></div>
+      </div>
+    </div>
+
+    <div style="background:#f9f8f5;border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:11px;">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);margin-bottom:.75rem;">Ubicación en galpón (opcional)</div>
+      <div class="fg" style="margin-bottom:0;"><label>Fila</label>
+        <select id="ep-fila">
+          <option value="">— Sin asignar —</option>
+        </select>
+      </div>
+    </div>
+
     <div style="display:flex;gap:10px;margin-top:4px;">
       <button class="btn btn-dark" onclick="guardarEditProd()">Guardar</button>
       <button class="btn btn-ghost" onclick="cerrarEditProd()">Cancelar</button>
@@ -2023,6 +2052,19 @@ function abrirEditProd(id){
   populateRubroSelects();
   document.getElementById('ep-rubro').value=p.rubro;
   document.getElementById('ep-minimo').value=p.minimo!=null?p.minimo:20;
+  document.getElementById('ep-fisico').value=p.fisico||0;
+  document.getElementById('ep-lote').value=p.lote||'';
+  document.getElementById('ep-venc').value=p.venc||'';
+
+  // Poblar select de unidades
+  const epUni = document.getElementById('ep-unidad');
+  epUni.innerHTML = unidades.map(u=>`<option value="${u}" ${u===(p.unidad||'L')?'selected':''}>${u}</option>`).join('');
+
+  // Poblar select de filas
+  const epFila = document.getElementById('ep-fila');
+  epFila.innerHTML = '<option value="">— Sin asignar —</option>' +
+    filas.map(f=>`<option value="${f.id}" ${f.id===p.filaId?'selected':''}>${f.nombre}</option>`).join('');
+
   document.getElementById('overlay-edit-prod').classList.add('open');
 }
 function cerrarEditProd(){document.getElementById('overlay-edit-prod').classList.remove('open');editProdId=null;}
@@ -2032,12 +2074,23 @@ async function guardarEditProd(){
   const nuevoNombre=document.getElementById('ep-nombre').value.trim();
   const nuevoRubro=document.getElementById('ep-rubro').value;
   const nuevoMinimo=parseFloat(document.getElementById('ep-minimo').value)||20;
+  const nuevoFisico=parseFloat(document.getElementById('ep-fisico').value)||0;
+  const nuevoLote=document.getElementById('ep-lote').value.trim();
+  const nuevoVenc=document.getElementById('ep-venc').value;
+  const nuevoUnidad=document.getElementById('ep-unidad').value||'L';
+  const nuevoFilaId=document.getElementById('ep-fila').value||null;
   if(!nuevoNombre){showToast('El nombre no puede estar vacío');return;}
-  // actualizar referencias en historial
   const nombreAnterior=p.nombre;
+  const fisicoAnterior=p.fisico;
   hist.forEach(h=>{if(String(h.prodId)===String(p.id))h.producto=nuevoNombre;});
-  p.nombre=nuevoNombre;p.rubro=nuevoRubro;p.minimo=nuevoMinimo;
-  _registrarEnHistorial('editar_prod', nuevoNombre, nuevoRubro, '—', '', null, null, nombreAnterior!==nuevoNombre?`Renombrado: "${nombreAnterior}" → "${nuevoNombre}"`:'Rubro/datos actualizados');
+  p.nombre=nuevoNombre; p.rubro=nuevoRubro; p.minimo=nuevoMinimo;
+  p.fisico=nuevoFisico; p.lote=nuevoLote; p.venc=nuevoVenc;
+  p.unidad=nuevoUnidad; p.filaId=nuevoFilaId||null;
+  let nota='';
+  if(nombreAnterior!==nuevoNombre) nota=`Renombrado: "${nombreAnterior}" → "${nuevoNombre}"`;
+  else if(fisicoAnterior!==nuevoFisico) nota=`Stock ajustado: ${fisicoAnterior} → ${nuevoFisico}`;
+  else nota='Datos actualizados';
+  _registrarEnHistorial('editar_prod', nuevoNombre, nuevoRubro, nuevoFisico, nuevoUnidad, fisicoAnterior, nuevoFisico, nota);
   cerrarEditProd();renderConfigList();renderTabla();populateProductoSelect();populateFiltros();renderHistorial();
   saveAll();
   showToast('✓ Producto actualizado');
