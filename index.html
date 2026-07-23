@@ -2082,18 +2082,70 @@ async function guardarEditProd(){
   if(!nuevoNombre){showToast('El nombre no puede estar vacío');return;}
   const nombreAnterior=p.nombre;
   const fisicoAnterior=p.fisico;
+
+  // ── Actualizar inv ──
   hist.forEach(h=>{if(String(h.prodId)===String(p.id))h.producto=nuevoNombre;});
   p.nombre=nuevoNombre; p.rubro=nuevoRubro; p.minimo=nuevoMinimo;
   p.fisico=nuevoFisico; p.lote=nuevoLote; p.venc=nuevoVenc;
   p.unidad=nuevoUnidad; p.filaId=nuevoFilaId||null;
+
+  // ── Sincronizar cambios a las filas del galpón ──
+  // 1. Actualizar nombre/unidad/venc en todos los items donde ya está el producto
+  const nombreBuscar = nombreAnterior.trim().toUpperCase();
+  filas.forEach(fila=>{
+    (fila.items||[]).forEach(item=>{
+      if((item.prod||'').trim().toUpperCase()===nombreBuscar){
+        if(nombreAnterior!==nuevoNombre) item.prod=nuevoNombre;
+        item.unidad=nuevoUnidad;
+        if(nuevoVenc) item.venc=nuevoVenc;
+        if(nuevoLote) item.notas=nuevoLote;
+      }
+    });
+  });
+
+  // 2. Si cambió el stock físico, distribuirlo:
+  //    - Si el producto tiene items en filas, actualizar el TOTAL del primer item encontrado
+  //    - (la suma de todos los items da el total en "Stock por producto")
+  if(fisicoAnterior!==nuevoFisico){
+    let itemsDelProd=[];
+    filas.forEach(fila=>{
+      (fila.items||[]).forEach(item=>{
+        if((item.prod||'').trim().toUpperCase()===nuevoNombre.trim().toUpperCase()){
+          itemsDelProd.push(item);
+        }
+      });
+    });
+
+    if(itemsDelProd.length===1){
+      // Solo está en una fila — actualizar directo
+      itemsDelProd[0].total=nuevoFisico;
+    } else if(itemsDelProd.length>1){
+      // Está en varias filas — ajustar el total sumando la diferencia al primer item
+      const totalActualFilas=itemsDelProd.reduce((s,i)=>s+(i.total||0),0);
+      const diff=nuevoFisico-totalActualFilas;
+      itemsDelProd[0].total=Math.max(0,(itemsDelProd[0].total||0)+diff);
+    } else if(nuevoFilaId){
+      // No está en ninguna fila pero seleccionaron una — agregarlo
+      const filaDestino=filas.find(f=>f.id===nuevoFilaId);
+      if(filaDestino){
+        filaDestino.items=filaDestino.items||[];
+        filaDestino.items.push({
+          prod:nuevoNombre, tipo:'liquido', presentacion:'',
+          cantidad:'', total:nuevoFisico, unidad:nuevoUnidad,
+          venc:nuevoVenc||'', estado:'ok', notas:nuevoLote||''
+        });
+      }
+    }
+  }
+
   let nota='';
   if(nombreAnterior!==nuevoNombre) nota=`Renombrado: "${nombreAnterior}" → "${nuevoNombre}"`;
-  else if(fisicoAnterior!==nuevoFisico) nota=`Stock ajustado: ${fisicoAnterior} → ${nuevoFisico}`;
+  else if(fisicoAnterior!==nuevoFisico) nota=`Stock ajustado: ${fisicoAnterior} → ${nuevoFisico} ${nuevoUnidad}`;
   else nota='Datos actualizados';
   _registrarEnHistorial('editar_prod', nuevoNombre, nuevoRubro, nuevoFisico, nuevoUnidad, fisicoAnterior, nuevoFisico, nota);
-  cerrarEditProd();renderConfigList();renderTabla();populateProductoSelect();populateFiltros();renderHistorial();
+  cerrarEditProd();renderConfigList();renderTabla();populateProductoSelect();populateFiltros();renderHistorial();if(document.getElementById('tab-resumen').classList.contains('active'))renderResumen();if(document.getElementById('tab-filas').classList.contains('active'))renderFilas();
   saveAll();
-  showToast('✓ Producto actualizado');
+  showToast('✓ Producto actualizado y sincronizado en filas');
 }
 async function eliminarProducto(id){
   const p=inv.find(x=>String(x.id)===String(id));
