@@ -1291,7 +1291,7 @@ tr.fact-row-vencida:hover td, tr.fact-row-porvencer:hover td{filter:brightness(0
 
 <!-- MODAL EDITAR PRODUCTO (config) -->
 <div class="overlay" id="overlay-edit-prod" onclick="if(event.target===this)cerrarEditProd()">
-  <div class="modal" style="width:560px;max-height:90vh;overflow-y:auto;">
+  <div class="modal" style="width:580px;max-height:90vh;overflow-y:auto;">
     <button class="modal-close" onclick="cerrarEditProd()">×</button>
     <div class="modal-title">Editar producto</div>
     <div class="modal-sub" id="edit-prod-sub">—</div>
@@ -1300,14 +1300,7 @@ tr.fact-row-vencida:hover td, tr.fact-row-porvencer:hover td{filter:brightness(0
       <div class="fg" style="margin-bottom:0;grid-column:span 2;"><label>Nombre</label><input type="text" id="ep-nombre"></div>
       <div class="fg" style="margin-bottom:0;"><label>Rubro</label><select id="ep-rubro"></select></div>
       <div class="fg" style="margin-bottom:0;"><label>Unidad de medida</label><select id="ep-unidad"></select></div>
-    </div>
-
-    <div style="background:#f9f8f5;border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:11px;">
-      <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);margin-bottom:.75rem;">Stock</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;">
-        <div class="fg" style="margin-bottom:0;"><label>Stock físico actual</label><input type="number" step="0.01" id="ep-fisico" placeholder="0"></div>
-        <div class="fg" style="margin-bottom:0;"><label>Stock mínimo (alerta)</label><input type="number" id="ep-minimo" min="0" step="1" placeholder="20"></div>
-      </div>
+      <div class="fg" style="margin-bottom:0;"><label>Stock mínimo (alerta)</label><input type="number" id="ep-minimo" min="0" step="1" placeholder="20"></div>
     </div>
 
     <div style="background:#f9f8f5;border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:11px;">
@@ -1319,11 +1312,14 @@ tr.fact-row-vencida:hover td, tr.fact-row-porvencer:hover td{filter:brightness(0
     </div>
 
     <div style="background:#f9f8f5;border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:11px;">
-      <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);margin-bottom:.75rem;">Ubicación en galpón (opcional)</div>
-      <div class="fg" style="margin-bottom:0;"><label>Fila</label>
-        <select id="ep-fila">
-          <option value="">— Sin asignar —</option>
-        </select>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);">Stock por fila</div>
+        <button type="button" onclick="epAgregarFila()" style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--accent-border);background:var(--accent-light);color:var(--accent);cursor:pointer;font-family:var(--font);">+ Agregar fila</button>
+      </div>
+      <div id="ep-filas-list"></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;color:var(--text-muted);">Total calculado:</span>
+        <span id="ep-total-calc" style="font-size:15px;font-weight:700;font-family:var(--mono);color:var(--accent);">0</span>
       </div>
     </div>
 
@@ -2043,6 +2039,34 @@ function renderConfigList(){
     </div>
   `).join('');
 }
+function epRecalcTotal(){
+  let total=0;
+  document.querySelectorAll('.ep-fila-stock').forEach(inp=>{ total+=parseFloat(inp.value)||0; });
+  const el=document.getElementById('ep-total-calc');
+  if(el) el.textContent=fmt(total)+' '+(document.getElementById('ep-unidad')?.value||'');
+}
+
+function epAgregarFila(filaId='', stock=0){
+  const list=document.getElementById('ep-filas-list');
+  const rowId='ep-fr-'+Date.now()+Math.random().toString(36).slice(2,6);
+  const filaOpts=filas.map(f=>`<option value="${f.id}" ${f.id===filaId?'selected':''}>${f.nombre}</option>`).join('');
+  const div=document.createElement('div');
+  div.id=rowId;
+  div.style.cssText='display:grid;grid-template-columns:1fr 120px 32px;gap:8px;align-items:center;margin-bottom:8px;';
+  div.innerHTML=`
+    <select style="padding:7px 10px;font-size:13px;font-family:var(--font);border:1px solid var(--border-dark);border-radius:8px;background:#fff;color:var(--text);outline:none;">
+      <option value="">— Sin fila —</option>${filaOpts}
+    </select>
+    <input type="number" step="0.01" min="0" value="${stock}" placeholder="0"
+      class="ep-fila-stock"
+      style="padding:7px 10px;font-size:13px;font-family:var(--mono);border:1px solid var(--border-dark);border-radius:8px;background:#fff;color:var(--text);outline:none;text-align:right;"
+      oninput="epRecalcTotal()">
+    <button type="button" onclick="document.getElementById('${rowId}').remove();epRecalcTotal();"
+      style="width:32px;height:32px;border-radius:7px;border:1px solid var(--danger-border);background:transparent;color:var(--danger);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;">×</button>`;
+  list.appendChild(div);
+  epRecalcTotal();
+}
+
 function abrirEditProd(id){
   const p=inv.find(x=>String(x.id)===String(id));
   if(!p)return;
@@ -2052,98 +2076,93 @@ function abrirEditProd(id){
   populateRubroSelects();
   document.getElementById('ep-rubro').value=p.rubro;
   document.getElementById('ep-minimo').value=p.minimo!=null?p.minimo:20;
-  document.getElementById('ep-fisico').value=p.fisico||0;
   document.getElementById('ep-lote').value=p.lote||'';
   document.getElementById('ep-venc').value=p.venc||'';
 
-  // Poblar select de unidades
-  const epUni = document.getElementById('ep-unidad');
-  epUni.innerHTML = unidades.map(u=>`<option value="${u}" ${u===(p.unidad||'L')?'selected':''}>${u}</option>`).join('');
+  // Unidades
+  const epUni=document.getElementById('ep-unidad');
+  epUni.innerHTML=unidades.map(u=>`<option value="${u}" ${u===(p.unidad||'L')?'selected':''}>${u}</option>`).join('');
 
-  // Poblar select de filas
-  const epFila = document.getElementById('ep-fila');
-  epFila.innerHTML = '<option value="">— Sin asignar —</option>' +
-    filas.map(f=>`<option value="${f.id}" ${f.id===p.filaId?'selected':''}>${f.nombre}</option>`).join('');
-
+  // Cargar filas donde está el producto
+  const list=document.getElementById('ep-filas-list');
+  list.innerHTML='';
+  const nombreBuscar=p.nombre.trim().toUpperCase();
+  let encontrado=false;
+  filas.forEach(fila=>{
+    (fila.items||[]).forEach(item=>{
+      if((item.prod||'').trim().toUpperCase()===nombreBuscar){
+        epAgregarFila(fila.id, item.total||0);
+        encontrado=true;
+      }
+    });
+  });
+  if(!encontrado) epAgregarFila('', p.fisico||0);
+  epRecalcTotal();
   document.getElementById('overlay-edit-prod').classList.add('open');
 }
+
 function cerrarEditProd(){document.getElementById('overlay-edit-prod').classList.remove('open');editProdId=null;}
+
 async function guardarEditProd(){
   const p=inv.find(x=>String(x.id)===String(editProdId));
   if(!p)return;
   const nuevoNombre=document.getElementById('ep-nombre').value.trim();
   const nuevoRubro=document.getElementById('ep-rubro').value;
   const nuevoMinimo=parseFloat(document.getElementById('ep-minimo').value)||20;
-  const nuevoFisico=parseFloat(document.getElementById('ep-fisico').value)||0;
   const nuevoLote=document.getElementById('ep-lote').value.trim();
   const nuevoVenc=document.getElementById('ep-venc').value;
   const nuevoUnidad=document.getElementById('ep-unidad').value||'L';
-  const nuevoFilaId=document.getElementById('ep-fila').value||null;
   if(!nuevoNombre){showToast('El nombre no puede estar vacío');return;}
+
+  // Leer filas del formulario
+  const nuevasFilas=[];
+  document.querySelectorAll('#ep-filas-list > div').forEach(row=>{
+    const sel=row.querySelector('select');
+    const inp=row.querySelector('input');
+    if(!sel||!inp)return;
+    const filaId=sel.value;
+    const stock=parseFloat(inp.value)||0;
+    if(filaId) nuevasFilas.push({filaId, stock});
+  });
+
+  const nuevoFisico=nuevasFilas.reduce((s,r)=>s+r.stock, 0);
   const nombreAnterior=p.nombre;
   const fisicoAnterior=p.fisico;
 
-  // ── Actualizar inv ──
+  // Actualizar inv
   hist.forEach(h=>{if(String(h.prodId)===String(p.id))h.producto=nuevoNombre;});
   p.nombre=nuevoNombre; p.rubro=nuevoRubro; p.minimo=nuevoMinimo;
-  p.fisico=nuevoFisico; p.lote=nuevoLote; p.venc=nuevoVenc;
-  p.unidad=nuevoUnidad; p.filaId=nuevoFilaId||null;
+  p.fisico=nuevoFisico; p.lote=nuevoLote; p.venc=nuevoVenc; p.unidad=nuevoUnidad;
 
-  // ── Sincronizar cambios a las filas del galpón ──
-  // 1. Actualizar nombre/unidad/venc en todos los items donde ya está el producto
-  const nombreBuscar = nombreAnterior.trim().toUpperCase();
+  // Sincronizar filas: quitar de todas las filas donde esté
+  const nombreUp=nuevoNombre.trim().toUpperCase();
+  const anteriorUp=nombreAnterior.trim().toUpperCase();
   filas.forEach(fila=>{
-    (fila.items||[]).forEach(item=>{
-      if((item.prod||'').trim().toUpperCase()===nombreBuscar){
-        if(nombreAnterior!==nuevoNombre) item.prod=nuevoNombre;
-        item.unidad=nuevoUnidad;
-        if(nuevoVenc) item.venc=nuevoVenc;
-        if(nuevoLote) item.notas=nuevoLote;
-      }
-    });
+    fila.items=(fila.items||[]).filter(i=>(i.prod||'').trim().toUpperCase()!==anteriorUp && (i.prod||'').trim().toUpperCase()!==nombreUp);
   });
 
-  // 2. Si cambió el stock físico, distribuirlo:
-  //    - Si el producto tiene items en filas, actualizar el TOTAL del primer item encontrado
-  //    - (la suma de todos los items da el total en "Stock por producto")
-  if(fisicoAnterior!==nuevoFisico){
-    let itemsDelProd=[];
-    filas.forEach(fila=>{
-      (fila.items||[]).forEach(item=>{
-        if((item.prod||'').trim().toUpperCase()===nuevoNombre.trim().toUpperCase()){
-          itemsDelProd.push(item);
-        }
+  // Agregar en las filas indicadas
+  nuevasFilas.forEach(({filaId,stock})=>{
+    const fila=filas.find(f=>f.id===filaId);
+    if(fila){
+      fila.items=fila.items||[];
+      fila.items.push({
+        prod:nuevoNombre, tipo:'liquido', presentacion:'',
+        cantidad:'', total:stock, unidad:nuevoUnidad,
+        venc:nuevoVenc||'', estado:'ok', notas:nuevoLote||''
       });
-    });
-
-    if(itemsDelProd.length===1){
-      // Solo está en una fila — actualizar directo
-      itemsDelProd[0].total=nuevoFisico;
-    } else if(itemsDelProd.length>1){
-      // Está en varias filas — ajustar el total sumando la diferencia al primer item
-      const totalActualFilas=itemsDelProd.reduce((s,i)=>s+(i.total||0),0);
-      const diff=nuevoFisico-totalActualFilas;
-      itemsDelProd[0].total=Math.max(0,(itemsDelProd[0].total||0)+diff);
-    } else if(nuevoFilaId){
-      // No está en ninguna fila pero seleccionaron una — agregarlo
-      const filaDestino=filas.find(f=>f.id===nuevoFilaId);
-      if(filaDestino){
-        filaDestino.items=filaDestino.items||[];
-        filaDestino.items.push({
-          prod:nuevoNombre, tipo:'liquido', presentacion:'',
-          cantidad:'', total:nuevoFisico, unidad:nuevoUnidad,
-          venc:nuevoVenc||'', estado:'ok', notas:nuevoLote||''
-        });
-      }
     }
-  }
+  });
 
   let nota='';
   if(nombreAnterior!==nuevoNombre) nota=`Renombrado: "${nombreAnterior}" → "${nuevoNombre}"`;
   else if(fisicoAnterior!==nuevoFisico) nota=`Stock ajustado: ${fisicoAnterior} → ${nuevoFisico} ${nuevoUnidad}`;
   else nota='Datos actualizados';
   _registrarEnHistorial('editar_prod', nuevoNombre, nuevoRubro, nuevoFisico, nuevoUnidad, fisicoAnterior, nuevoFisico, nota);
-  cerrarEditProd();renderConfigList();renderTabla();populateProductoSelect();populateFiltros();renderHistorial();if(document.getElementById('tab-resumen').classList.contains('active'))renderResumen();if(document.getElementById('tab-filas').classList.contains('active'))renderFilas();
+  cerrarEditProd();
+  renderConfigList();renderTabla();populateProductoSelect();populateFiltros();renderHistorial();
+  if(document.getElementById('tab-resumen').classList.contains('active'))renderResumen();
+  if(document.getElementById('tab-filas').classList.contains('active'))renderFilas();
   saveAll();
   showToast('✓ Producto actualizado y sincronizado en filas');
 }
