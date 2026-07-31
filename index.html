@@ -5009,7 +5009,7 @@ function guardarConfig(){
   });
   // Validez
   cfg.validez=document.getElementById('cfg-validez').value.trim()||cfg.validez;
-  document.getElementById('footer-validez').textContent='hasta el '+cfg.validez;
+  const _fv=document.getElementById('footer-validez'); if(_fv) _fv.textContent='hasta el '+cfg.validez;
   populatePago();
   populateVolSelector();
   updateToggleUI();
@@ -5035,7 +5035,7 @@ function showToast(msg){
 }
 
 // Init
-document.getElementById('footer-validez').textContent='hasta el '+cfg.validez;
+const _fv=document.getElementById('footer-validez'); if(_fv) _fv.textContent='hasta el '+cfg.validez;
 populatePago();
 populateVolSelector();
 updateToggleUI();
