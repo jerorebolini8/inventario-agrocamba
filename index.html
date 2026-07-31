@@ -4818,27 +4818,67 @@ function guardarCotizacion(){
 
 function copiarWA(){
   if(!carrito.length){showToast('No hay items en la cotización');return;}
-  const pago=document.getElementById('sel-pago').value;
   const precampaña=document.getElementById('sel-precampaña').value==='si';
   const crecer=document.getElementById('sel-crecer').value==='si';
   const cliente=document.getElementById('inp-cliente').value.trim();
   const dVolMaiz=getDescVolumenEfectivo("maiz");
   const dVolGira=getDescVolumenEfectivo("gira");
-  let subtotal=0;
-  let txt='*Cotización Nidera — Cambá Agronegocios*\n';
-  if(cliente)txt+=`Cliente: ${cliente}\n`;
-  txt+=`Pago: ${getPagoLabel(pago)}\n\n`;
-  carrito.forEach(item=>{
-    const dVol=item.cultivo==='maiz'?dVolMaiz:dVolGira;
-    const d=calcDescItem(item,pago,precampaña,crecer,dVol);
-    const pf=item.lista_precio*(1-d/100);
-    const total=pf*item.qty;
-    subtotal+=total;
-    txt+=`• ${item.nombre}: ${item.qty} bolsa${item.qty>1?'s':''} × USD ${pf.toFixed(2)} = *USD ${total.toFixed(2)}*\n`;
-  });
-  if(dVolMaiz>0)txt+=`_Desc. volumen maíz: −${dVolMaiz}%_\n`;
-  if(dVolGira>0)txt+=`_Desc. volumen girasol: −${dVolGira}%_\n`;
-  txt+=`\n*Total: USD ${subtotal.toFixed(2)}*\n_Válido hasta ${cfg.validez} o hasta agotar stock_`;
+
+  // Métodos de pago disponibles por cultivo
+  const pagosMaiz=[
+    {key:'contado', label:'Contado'},
+    {key:'fwd_corto', label:'FWD Dic26/Ene27'},
+    {key:'fwd_cosecha', label:'FWD Cosecha 27'},
+  ];
+  const pagosGira=[
+    {key:'contado', label:'Contado'},
+    {key:'fwd_corto', label:'FWD Dic26/Ene27'},
+    {key:'avc', label:'AVC Girasol'},
+  ];
+
+  function precioItem(item, pagoKey){
+    const dVol = item.cultivo==='maiz' ? dVolMaiz : dVolGira;
+    const d = calcDescItem(item, pagoKey, precampaña, crecer, dVol);
+    return item.lista_precio * (1 - d/100);
+  }
+
+  function bandaLabel(banda){
+    return banda ? ` B${banda}` : '';
+  }
+
+  const itemsMaiz = carrito.filter(i=>i.cultivo==='maiz');
+  const itemsGira = carrito.filter(i=>i.cultivo==='gira');
+
+  let txt = '🌾 *Cotización — Cambá Agronegocios*\n';
+  txt += `📅 Válido hasta ${cfg.validez}\n`;
+  if(cliente) txt += `👤 ${cliente}\n`;
+
+  if(itemsMaiz.length){
+    txt += '\n🌽 *MAÍZ*\n';
+    itemsMaiz.forEach(item=>{
+      const banda = bandaLabel(item.banda);
+      txt += `🔹 *${item.nombre}${banda}*\n`;
+      pagosMaiz.forEach(p=>{
+        const pf = precioItem(item, p.key);
+        txt += `   ${p.label}: *USD ${pf.toFixed(0)}*\n`;
+      });
+    });
+  }
+
+  if(itemsGira.length){
+    txt += '\n🌻 *GIRASOL*\n';
+    itemsGira.forEach(item=>{
+      const banda = bandaLabel(item.banda);
+      txt += `🔹 *${item.nombre}${banda}*\n`;
+      pagosGira.forEach(p=>{
+        const pf = precioItem(item, p.key);
+        txt += `   ${p.label}: *USD ${pf.toFixed(0)}*\n`;
+      });
+    });
+  }
+
+  txt += `\n_Precios por bolsa · Sujeto a disponibilidad_`;
+
   navigator.clipboard.writeText(txt).then(()=>showToast('✓ Copiado al portapapeles')).catch(()=>showToast('No se pudo copiar'));
 }
 
