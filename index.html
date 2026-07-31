@@ -4566,10 +4566,7 @@ let cotHistorial=[];
 let descToggles={nidera:false,agrocamba:false}; // legacy, no longer used
 
 function loadConfig(){
-  try{
-    const s=localStorage.getItem('cot_cfg');
-    if(s)return JSON.parse(s);
-  }catch(e){}
+  // Config se carga desde Firebase en fetchData — usar DEFAULT_CONFIG como inicio
   return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
 }
 function saveConfig(){saveCotConfig();}
@@ -5013,12 +5010,11 @@ function guardarConfig(){
   // Validez
   cfg.validez=document.getElementById('cfg-validez').value.trim()||cfg.validez;
   document.getElementById('footer-validez').textContent='hasta el '+cfg.validez;
-  saveConfig();
   populatePago();
   populateVolSelector();
   updateToggleUI();
   renderHibridos();
-  showToast('✓ Configuración guardada');
+  saveCotConfig(); // async — muestra toast al terminar
 }
 
 function resetConfig(){
@@ -5048,8 +5044,13 @@ renderHibridos();
 // ── COTIZADOR FIREBASE ───────────────────────────────────
 async function saveCotConfig(){
   try{
-    if(window._fbReady) await window._fbSave({inv,rubros,unidades,filas,notas,facturas,cotCfg:cfg,ts:Date.now()});
-  }catch(e){console.error('saveCotConfig',e);}
+    if(window._fbReady){
+      await window._fbSave({inv,rubros,unidades,filas,notas,facturas,cotCfg:cfg,cotHistorial:cotHistorial||[],ts:Date.now()});
+      showToast('✓ Configuración guardada');
+    } else {
+      showToast('⚠ Sin conexión — no se pudo guardar');
+    }
+  }catch(e){console.error('saveCotConfig',e); showToast('⚠ Error al guardar');}
 }
 async function saveCotHistorial(){
   try{
