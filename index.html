@@ -728,10 +728,6 @@ table.htable tbody tr:hover td{background:#f4faf6;}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           Stock por producto
         </button>
-        <button class="nav-btn" onclick="showTab('filas')" data-tab="filas">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="5" rx="1"/><rect x="3" y="10" width="18" height="5" rx="1"/><rect x="3" y="17" width="18" height="5" rx="1"/></svg>
-          Filas del galpón
-        </button>
         <button class="nav-btn" onclick="showTab('movimiento')" data-tab="movimiento">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
           Registrar movimiento
@@ -891,12 +887,19 @@ table.htable tbody tr:hover td{background:#f4faf6;}
             <input type="number" id="mv-cantidad" min="0.01" step="0.01" placeholder="Ej: 100" oninput="updatePreview()">
           </div>
         </div>
-        <div class="fg">
-          <label>Fila del galpón (opcional)</label>
-          <select id="mv-fila" onchange="updatePreview();updateMvFilaInfo()">
-            <option value="">— Sin fila específica —</option>
-          </select>
-          <div id="mv-fila-info" style="font-size:11.5px;color:var(--text-muted);margin-top:4px;font-family:var(--mono);display:none;"></div>
+        <div class="fg" id="mv-lote-salida-wrap" style="display:none;">
+          <label>Lote de salida <span style="color:var(--accent);font-weight:400;text-transform:none;letter-spacing:0;">· sugerido por vencimiento, podés cambiarlo</span></label>
+          <select id="mv-lote" onchange="updatePreview()"></select>
+        </div>
+        <div class="fg-row" id="mv-lote-entrada-wrap" style="display:none;">
+          <div class="fg" style="flex:1">
+            <label>N° de lote</label>
+            <input type="text" id="mv-lote-nuevo" placeholder="Ej: ACD4B00015" list="mv-lotes-existentes">
+            <datalist id="mv-lotes-existentes"></datalist>
+          </div>
+          <div class="fg" style="flex:1"><label>Vencimiento (opcional)</label>
+            <input type="date" id="mv-lote-venc">
+          </div>
         </div>
         <div class="fg"><label>Motivo / observación (opcional)</label>
           <input type="text" id="mv-motivo" placeholder="Ej: Recepción proveedor, venta campo, ajuste...">
@@ -1125,7 +1128,7 @@ table.htable tbody tr:hover td{background:#f4faf6;}
         <div class="dash-card">
           <div class="dash-card-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Vencimientos próximos (≤60 días)
+            Vencimientos de lotes (≤90 días)
           </div>
           <div id="dash-vencimientos"></div>
         </div>
@@ -1715,8 +1718,15 @@ table.htable tbody tr:hover td{background:#f4faf6;}
     <div class="modal-sub" id="det-rubro">—</div>
 
     <div class="detail-block">
-      <div class="detail-block-title">Stock físico</div>
-      <div class="detail-row"><label>En galpón ahora mismo</label><div class="val" id="det-fisico">—</div></div>
+      <div class="detail-block-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>Lotes</span>
+        <button type="button" onclick="detAgregarLote()" style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--accent-border);background:var(--accent-light);color:var(--accent);cursor:pointer;font-family:var(--font);">+ Agregar lote</button>
+      </div>
+      <div id="det-lotes-list"></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;color:var(--text-muted);">Físico total (suma de lotes):</span>
+        <span id="det-fisico" style="font-size:16px;font-weight:700;font-family:var(--mono);color:var(--accent);">—</span>
+      </div>
     </div>
 
     <div class="detail-block">
@@ -1805,24 +1815,8 @@ table.htable tbody tr:hover td{background:#f4faf6;}
       <div class="fg" style="margin-bottom:0;"><label>Stock mínimo (alerta)</label><input type="number" id="ep-minimo" min="0" step="1" placeholder="20"></div>
     </div>
 
-    <div style="background:#f9f8f5;border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:11px;">
-      <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);margin-bottom:.75rem;">Lote y vencimiento</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;">
-        <div class="fg" style="margin-bottom:0;"><label>Número de lote</label><input type="text" id="ep-lote" placeholder="Ej: ACD4B00004"></div>
-        <div class="fg" style="margin-bottom:0;"><label>Fecha de vencimiento</label><input type="date" id="ep-venc"></div>
-      </div>
-    </div>
-
-    <div style="background:#f9f8f5;border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:11px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
-        <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);">Stock por fila</div>
-        <button type="button" onclick="epAgregarFila()" style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--accent-border);background:var(--accent-light);color:var(--accent);cursor:pointer;font-family:var(--font);">+ Agregar fila</button>
-      </div>
-      <div id="ep-filas-list"></div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:12px;color:var(--text-muted);">Total calculado:</span>
-        <span id="ep-total-calc" style="font-size:15px;font-weight:700;font-family:var(--mono);color:var(--accent);">0</span>
-      </div>
+    <div style="background:#f9f8f5;border:1px solid var(--border);border-radius:10px;padding:.75rem 1.1rem;margin-bottom:4px;font-size:12px;color:var(--text-muted);">
+      Los lotes y el stock físico se gestionan desde <strong>Stock por producto → Ver</strong>. Acá solo se edita la info general del producto.
     </div>
 
     <div style="display:flex;gap:10px;margin-top:4px;">
@@ -1938,6 +1932,7 @@ async function fetchData(){
       facturas = data.facturas && data.facturas.length>0 ? data.facturas : [];
       if(data.cotCfg) cfg = data.cotCfg;
       cotHistorial = data.cotHistorial || [];
+      migrarLotes();
       setSyncStatus('ok','🟢 Conectado · '+hist.length+' mov.');
     } else {
       // Firebase no devolvió datos — NO sobreescribir, mostrar error
@@ -1957,10 +1952,12 @@ async function fetchData(){
       rubros=SAVED_RUB||[...BASE_RUBROS];
       unidades=[...BASE_UNIDADES];
       filas=JSON.parse(JSON.stringify(FILAS_BASE)); // error: solo base
+      migrarLotes();
     } else {
       inv=JSON.parse(JSON.stringify(BASE));hist=[];rubros=[...BASE_RUBROS];
       unidades=[...BASE_UNIDADES];
       filas=JSON.parse(JSON.stringify(FILAS_BASE));
+      migrarLotes();
     }
     return false;
   }
@@ -1999,6 +1996,15 @@ async function syncNow(){
 
 
 // ── HELPERS ────────────────────────────────────────────────
+function migrarLotes(){
+  inv.forEach(p=>{
+    if(!p.lotes||!p.lotes.length){
+      p.lotes=[{lote:p.lote||'Sin lote',cantidad:p.fisico||0,venc:p.venc||''}];
+    }
+  });
+}
+function sumLotes(p){return (p.lotes||[]).reduce((s,l)=>s+(parseFloat(l.cantidad)||0),0);}
+function recalcFisico(p){p.fisico=sumLotes(p);}
 function cont(p){return p.fisico+(p.crpf||0)+(p.cfpr||0)-(p.vepf||0)-(p.vfpe||0);}
 function est(f,minimo){const m=minimo||20;return f<=0?'danger':f<=m?'warn':'ok';}
 function estLbl(f,minimo){const m=minimo||20;return f<=0?'Sin stock':f<=m?'Stock bajo':'Normal';}
@@ -2062,7 +2068,7 @@ function abrirDetalle(id){
   detId=String(id);
   document.getElementById('det-nombre').textContent=p.nombre;
   document.getElementById('det-rubro').textContent=p.rubro+' · ID '+p.id;
-  document.getElementById('det-fisico').textContent=fmt(p.fisico);
+  renderDetLotes(p);
   document.getElementById('det-crpf').value=p.crpf||0;
   document.getElementById('det-cfpr').value=p.cfpr||0;
   document.getElementById('det-vepf').value=p.vepf||0;
@@ -2074,10 +2080,45 @@ function abrirDetalle(id){
   document.getElementById('overlay-detalle').classList.add('open');
 }
 function cerrarDetalle(){document.getElementById('overlay-detalle').classList.remove('open');detId=null;}
+
+function renderDetLotes(p){
+  const list=document.getElementById('det-lotes-list');
+  list.innerHTML='';
+  const lotes=(p.lotes&&p.lotes.length)?p.lotes:[{lote:'Sin lote',cantidad:p.fisico||0,venc:''}];
+  lotes.forEach(l=>detAgregarLote(l.lote,l.cantidad,l.venc));
+  detRecalcFisico();
+}
+function detAgregarLote(lote='',cantidad=0,venc=''){
+  const list=document.getElementById('det-lotes-list');
+  const rowId='det-lr-'+Date.now()+Math.random().toString(36).slice(2,6);
+  const vi=vencInfo(venc);
+  const div=document.createElement('div');
+  div.id=rowId;
+  div.style.cssText='display:grid;grid-template-columns:1fr 90px 130px 28px;gap:8px;align-items:center;margin-bottom:8px;';
+  div.innerHTML=`
+    <input type="text" value="${lote||''}" placeholder="N° de lote" class="det-lote-nombre"
+      style="padding:7px 9px;font-size:12.5px;font-family:var(--mono);border:1px solid var(--border-dark);border-radius:7px;background:#fff;color:var(--text);outline:none;">
+    <input type="number" step="0.01" value="${cantidad||0}" placeholder="0" class="det-lote-cant"
+      style="padding:7px 9px;font-size:12.5px;font-family:var(--mono);border:1px solid var(--border-dark);border-radius:7px;background:#fff;color:var(--text);outline:none;text-align:right;"
+      oninput="detRecalcFisico()">
+    <input type="date" value="${venc||''}" class="det-lote-venc"
+      style="padding:6px 8px;font-size:12px;font-family:var(--mono);border:1px solid var(--border-dark);border-radius:7px;background:#fff;color:var(--text);outline:none;">
+    <button type="button" onclick="document.getElementById('${rowId}').remove();detRecalcFisico();"
+      style="width:28px;height:28px;border-radius:7px;border:1px solid var(--danger-border);background:transparent;color:var(--danger);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;">×</button>`;
+  list.appendChild(div);
+  detRecalcFisico();
+}
+function detRecalcFisico(){
+  let total=0;
+  document.querySelectorAll('#det-lotes-list .det-lote-cant').forEach(inp=>{total+=parseFloat(inp.value)||0;});
+  const el=document.getElementById('det-fisico');
+  if(el)el.textContent=fmt(total);
+  recalcContable();
+}
 function recalcContable(){
   if(!detId)return;
-  const p=inv.find(x=>String(x.id)===String(detId));
-  const f=p?p.fisico:0;
+  let f=0;
+  document.querySelectorAll('#det-lotes-list .det-lote-cant').forEach(inp=>{f+=parseFloat(inp.value)||0;});
   const c=f+(parseFloat(document.getElementById('det-crpf').value)||0)+(parseFloat(document.getElementById('det-cfpr').value)||0)-(parseFloat(document.getElementById('det-vepf').value)||0)-(parseFloat(document.getElementById('det-vfpe').value)||0);
   document.getElementById('det-contable').textContent=fmt(c);
 }
@@ -2097,6 +2138,16 @@ function renderPriceHist(p){
 async function guardarDetalle(){
   const p=inv.find(x=>String(x.id)===String(detId));
   if(!p)return;
+  const nuevosLotes=[];
+  document.querySelectorAll('#det-lotes-list > div').forEach(row=>{
+    const nom=row.querySelector('.det-lote-nombre')?.value.trim()||'Sin lote';
+    const cant=parseFloat(row.querySelector('.det-lote-cant')?.value)||0;
+    const venc=row.querySelector('.det-lote-venc')?.value||'';
+    nuevosLotes.push({lote:nom,cantidad:cant,venc});
+  });
+  const fisicoAnterior=p.fisico;
+  p.lotes=nuevosLotes.length?nuevosLotes:[{lote:'Sin lote',cantidad:0,venc:''}];
+  recalcFisico(p);
   p.crpf=parseFloat(document.getElementById('det-crpf').value)||0;
   p.cfpr=parseFloat(document.getElementById('det-cfpr').value)||0;
   p.vepf=parseFloat(document.getElementById('det-vepf').value)||0;
@@ -2109,9 +2160,11 @@ async function guardarDetalle(){
     p.precioHist.push({precio:p.precio,fecha:new Date().toISOString().slice(0,7)});// YYYY-MM
   }
   p.precio=nuevoPrecio;
+  if(fisicoAnterior!==p.fisico)_registrarEnHistorial('editar_prod', p.nombre, p.rubro, p.fisico, p.unidad||'', fisicoAnterior, p.fisico, `Lotes ajustados: ${fmt(fisicoAnterior)} → ${fmt(p.fisico)}`);
   _registrarEnHistorial('contable', p.nombre, p.rubro, '—', '', null, null, 'Datos contables actualizados');
   if(nuevoPrecio!==0)_registrarEnHistorial('precio', p.nombre, p.rubro, nuevoPrecio, '$', null, null, 'Precio de venta actualizado');
-  cerrarDetalle();renderTabla();renderHistorial();
+  cerrarDetalle();renderTabla();renderHistorial();renderMetrics();populateProductoSelect();
+  if(document.getElementById('tab-dashboard')?.classList.contains('active'))renderDashboard();
   saveAll();
   showToast('✓ Datos guardados y sincronizados');
 }
@@ -2119,56 +2172,54 @@ async function guardarDetalle(){
 // ── MOVIMIENTO ─────────────────────────────────────────────
 function populateProductoSelect(){
   // mv-producto is now a hidden input fed by autocomplete
-  populateMvFilaSelect();
   // Re-init autocomplete in case inv changed
   const inp=document.getElementById('mv-producto-input');
   if(inp&&inp.value){
     const p=inv.find(x=>x.nombre===inp.value);
     document.getElementById('mv-producto').value=p?p.id:'';
   }
+  populateMvLotes();
 }
-function populateMvFilaSelect(){
-  const sel=document.getElementById('mv-fila');
-  if(!sel)return;
-  const curr=sel.value;
-  sel.innerHTML='<option value="">— Sin fila específica —</option>'+
-    filas.map(f=>`<option value="${f.id}">${f.nombre} (${f.items.length} productos)</option>`).join('');
-  if(curr)sel.value=curr;
-  updateMvFilaInfo();
-}
-function updateMvFilaInfo(){
-  const filaId=document.getElementById('mv-fila')?.value;
-  const prodId=document.getElementById('mv-producto')?.value;
-  const infoEl=document.getElementById('mv-fila-info');
-  if(!infoEl)return;
-  if(!filaId){infoEl.style.display='none';return;}
-  const f=filas.find(x=>x.id===filaId);
-  const p=inv.find(x=>String(x.id)===String(prodId));
-  if(!f||!p){infoEl.style.display='none';return;}
-  // Buscar si el producto ya existe en esa fila
-  const norm=s=>s.toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
-  const existing=f.items.find(i=>norm(i.prod).includes(norm(p.nombre).split(' ')[0])||norm(p.nombre).includes(norm(i.prod).split(' ')[0]));
-  if(existing){
-    infoEl.textContent=`${p.nombre} ya está en ${f.nombre}: ${fmt(existing.total??0)} ${existing.unidad}`;
+function populateMvLotes(){
+  const wrapSalida=document.getElementById('mv-lote-salida-wrap');
+  const wrapEntrada=document.getElementById('mv-lote-entrada-wrap');
+  if(!wrapSalida||!wrapEntrada)return;
+  const tipo=document.getElementById('mv-tipo').value;
+  const id=document.getElementById('mv-producto').value;
+  const p=inv.find(x=>String(x.id)===String(id));
+  if(tipo==='salida'){
+    wrapSalida.style.display='block';wrapEntrada.style.display='none';
+    const sel=document.getElementById('mv-lote');
+    if(!p||!p.lotes||!p.lotes.length){sel.innerHTML='<option value="">— Sin lotes cargados —</option>';return;}
+    const ordenado=[...p.lotes].sort((a,b)=>{
+      if(!a.venc&&!b.venc)return 0;
+      if(!a.venc)return 1;
+      if(!b.venc)return -1;
+      return new Date(a.venc)-new Date(b.venc);
+    });
+    sel.innerHTML=ordenado.map(l=>{
+      const vencTxt=l.venc?new Date(l.venc+'T00:00:00').toLocaleDateString('es-AR'):'sin vencimiento';
+      const vi=vencInfo(l.venc);
+      const marca=vi.dias!=null&&vi.dias<0?' — vencido':'';
+      return `<option value="${l.lote}">${l.lote} · ${fmt(l.cantidad)} disp. · ${vencTxt}${marca}</option>`;
+    }).join('');
   } else {
-    infoEl.textContent=`${p.nombre} no está en ${f.nombre} — se va a agregar`;
+    wrapSalida.style.display='none';wrapEntrada.style.display='block';
+    const dl=document.getElementById('mv-lotes-existentes');
+    if(dl)dl.innerHTML=p?(p.lotes||[]).map(l=>`<option value="${l.lote}">`).join(''):'';
   }
-  infoEl.style.display='block';
 }
 function updatePreview(){
   const id=document.getElementById('mv-producto').value;
   const tipo=document.getElementById('mv-tipo').value;
   const cant=parseFloat(document.getElementById('mv-cantidad').value)||0;
-  const filaId=document.getElementById('mv-fila')?.value||'';
   const p=inv.find(x=>String(x.id)===String(id));
   const el=document.getElementById('mv-preview');
   const infoEl=document.getElementById('mv-prod-info');
+  populateMvLotes();
 
   // Mostrar info del producto seleccionado
   if(p && infoEl){
-    // Filas donde está este producto
-    const filasConProd=filas.filter(f=>f.items.some(i=>i.prod.trim().toUpperCase()===p.nombre.trim().toUpperCase()));
-    const filasNombres=filasConProd.map(f=>f.nombre).join(', ')||'Sin asignar';
     // Último movimiento
     const movsP=hist.filter(h=>(h.producto||'').trim().toUpperCase()===p.nombre.trim().toUpperCase());
     let ultimoMov='Sin historial';
@@ -2180,39 +2231,22 @@ function updatePreview(){
         ultimoMov=dias===0?'Hoy':dias===1?'Ayer':`hace ${dias} días`;
       }catch(e){}
     }
-    // Stock en filas
-    const stockFila=filasConProd.reduce((sum,f)=>{
-      return sum+f.items.filter(i=>i.prod.trim().toUpperCase()===p.nombre.trim().toUpperCase()).reduce((s,i)=>s+(i.total||0),0);
-    },0);
+    const nLotes=(p.lotes||[]).length;
     infoEl.style.display='block';
     infoEl.innerHTML=`
       <span style="font-weight:600;color:var(--accent);">${p.nombre}</span><br>
-      📦 <strong>Stock actual:</strong> ${fmt(stockFila||p.fisico)} ${filasConProd[0]?.items.find(i=>i.prod.trim().toUpperCase()===p.nombre.trim().toUpperCase())?.unidad||'L'} &nbsp;·&nbsp;
-      🏠 <strong>Filas:</strong> ${filasNombres} &nbsp;·&nbsp;
+      📦 <strong>Stock actual:</strong> ${fmt(p.fisico)} &nbsp;·&nbsp;
+      🏷️ <strong>Lotes:</strong> ${nLotes} &nbsp;·&nbsp;
       🕐 <strong>Último movimiento:</strong> ${ultimoMov}
     `;
   } else if(infoEl){
     infoEl.style.display='none';
   }
 
-  if(!p||cant<=0){el.className='preview-box';updateMvFilaInfo();return;}
+  if(!p||cant<=0){el.className='preview-box';return;}
   const nuevo=tipo==='entrada'?p.fisico+cant:p.fisico-cant;
-  // También mostrar impacto en fila si está seleccionada
-  let filaInfo='';
-  if(filaId){
-    const fila=filas.find(f=>f.id===filaId);
-    if(fila){
-      const norm=s=>s.toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
-      const item=fila.items.find(i=>norm(i.prod).includes(norm(p.nombre).split(' ').filter(w=>w.length>3)[0]||'')||norm(p.nombre).includes(norm(i.prod).split(' ').filter(w=>w.length>3)[0]||''));
-      if(item&&item.total!=null){
-        const nuevFila=tipo==='entrada'?item.total+cant:Math.max(0,item.total-cant);
-        filaInfo=`<br><span style="opacity:.8">📦 ${fila.nombre}: ${fmt(item.total)} → <strong>${fmt(nuevFila)}</strong> ${item.unidad}</span>`;
-      }
-    }
-  }
-  el.innerHTML=`<strong>${p.nombre}</strong><br>Stock por producto: <strong>${fmt(p.fisico)}</strong> → <strong>${fmt(nuevo)}</strong> <span style="opacity:.7">(${tipo==='entrada'?'+':'−'}${fmt(cant)})</span>${filaInfo}`;
+  el.innerHTML=`<strong>${p.nombre}</strong><br>Stock por producto: <strong>${fmt(p.fisico)}</strong> → <strong>${fmt(nuevo)}</strong> <span style="opacity:.7">(${tipo==='entrada'?'+':'−'}${fmt(cant)})</span>`;
   el.className='preview-box '+est(nuevo);
-  updateMvFilaInfo();
 }
 // ── HELPER HISTORIAL UNIFICADO ────────────────────────────
 function _registrarEnHistorial(tipo, producto, fila, cantidad, unidad, anterior, nuevo, motivo){
@@ -2228,13 +2262,40 @@ function _registrarEnHistorial(tipo, producto, fila, cantidad, unidad, anterior,
   // Guardar en colección separada de Firestore
   if(window._fbReady) window._fbAddHist(mov).catch(e=>console.error('addHist error',e));
 }
+// ── AJUSTE DE LOTES ────────────────────────────────────────
+function ajustarLote(p, loteName, delta){
+  if(!p)return;
+  const l=(p.lotes||[]).find(x=>(x.lote||'').trim().toLowerCase()===(loteName||'').trim().toLowerCase());
+  if(l){l.cantidad=(parseFloat(l.cantidad)||0)+delta;recalcFisico(p);}
+  else{p.fisico=(p.fisico||0)+delta;}
+}
+function registrarEntradaLote(p, loteNombre, cant, venc){
+  loteNombre=(loteNombre||'').trim()||('Lote '+new Date().toLocaleDateString('es-AR'));
+  if(!p.lotes)p.lotes=[];
+  const existente=p.lotes.find(l=>(l.lote||'').trim().toLowerCase()===loteNombre.toLowerCase());
+  if(existente){
+    existente.cantidad=(parseFloat(existente.cantidad)||0)+cant;
+    if(venc)existente.venc=venc;
+  } else {
+    p.lotes.push({lote:loteNombre,cantidad:cant,venc:venc||''});
+  }
+  recalcFisico(p);
+  return loteNombre;
+}
+function registrarSalidaLote(p, loteNombre, cant){
+  if(!p.lotes||!p.lotes.length){p.fisico=(p.fisico||0)-cant;return loteNombre||'';}
+  let l=p.lotes.find(x=>(x.lote||'')===loteNombre);
+  if(!l)l=p.lotes[0];
+  l.cantidad=(parseFloat(l.cantidad)||0)-cant;
+  recalcFisico(p);
+  return l.lote;
+}
 
 async function registrarMovimiento(){
   const id=document.getElementById('mv-producto').value;
   const tipo=document.getElementById('mv-tipo').value;
   const cant=parseFloat(document.getElementById('mv-cantidad').value);
   const motivo=document.getElementById('mv-motivo').value.trim();
-  const filaId=document.getElementById('mv-fila')?.value||'';
   if(!id){showToast('Seleccioná un producto');return;}
   if(!cant||cant<=0){showToast('Ingresá una cantidad válida');return;}
   const p=inv.find(x=>String(x.id)===String(id));
@@ -2243,48 +2304,27 @@ async function registrarMovimiento(){
   const saving=document.getElementById('mv-saving');
   btn.disabled=true;saving.style.display='inline';
   const anterior=p.fisico;
-  p.fisico=tipo==='entrada'?p.fisico+cant:p.fisico-cant;
+  let loteUsado='';
+  if(tipo==='entrada'){
+    const loteNombre=document.getElementById('mv-lote-nuevo').value;
+    const venc=document.getElementById('mv-lote-venc').value;
+    loteUsado=registrarEntradaLote(p,loteNombre,cant,venc);
+  } else {
+    const loteSel=document.getElementById('mv-lote').value;
+    loteUsado=registrarSalidaLote(p,loteSel,cant);
+  }
   const now=new Date();
   const fecha=now.toLocaleDateString('es-AR')+' '+now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
-  const filaLabel=filaId?(filas.find(f=>f.id===filaId)?.nombre||''):'';
 
-  // ── Sincronizar con fila del galpón ──────────────────────
-  if(filaId){
-    const fila=filas.find(f=>f.id===filaId);
-    if(fila){
-      const norm=s=>s.toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
-      const existIdx=fila.items.findIndex(i=>
-        norm(i.prod).includes(norm(p.nombre).split(' ').filter(w=>w.length>3)[0]||norm(p.nombre))||
-        norm(p.nombre).includes(norm(i.prod).split(' ').filter(w=>w.length>3)[0]||norm(i.prod))
-      );
-      if(existIdx>=0){
-        // Producto existe en la fila — actualizar total
-        const item=fila.items[existIdx];
-        const delta=tipo==='entrada'?cant:-cant;
-        if(item.total!=null) item.total=Math.max(0,parseFloat((item.total+delta).toFixed(2)));
-        // Si la salida dejó el total en 0, no eliminar — el usuario puede querer mantenerlo
-      } else if(tipo==='entrada'){
-        // Entrada: agregar producto a la fila
-        fila.items.push({
-          prod:p.nombre, tipo:'liquido', presentacion:'—',
-          cantidad:fmt(cant)+' '+( ['L','kg','gr'].includes(p.rubro)?'':'' ),
-          total:cant, unidad:'L', venc:'', estado:'ok',
-          notas:'Agregado desde Registrar movimiento'
-        });
-      }
-      // Salida con total 0: dejar en la fila con 0 (no eliminar automáticamente)
-    }
-  }
-
-  const mov={id:Date.now(),ts:Date.now(),fecha,producto:p.nombre,prodId:String(p.id),rubro:p.rubro,tipo,cantidad:cant,anterior,nuevo:p.fisico,motivo:motivo+(filaLabel?' · '+filaLabel:''),unidad:''};
+  const mov={id:Date.now(),ts:Date.now(),fecha,producto:p.nombre,prodId:String(p.id),rubro:p.rubro,tipo,cantidad:cant,anterior,nuevo:p.fisico,motivo:motivo+(loteUsado?' · lote '+loteUsado:''),unidad:'',lote:loteUsado};
   hist.unshift(mov);
   if(window._fbReady) window._fbAddHist(mov).catch(e=>console.error('addHist error',e));
   populateProductoSelect();renderMetrics();renderTabla();limpiarForm();
   renderResumen();
-  if(document.querySelector('.tab-content.active')?.id==='tab-filas') renderFilas();
+  renderDashboard();
   await saveAll();
   btn.disabled=false;saving.style.display='none';
-  showToast('✓ Movimiento registrado'+(filaLabel?' · '+filaLabel:''));
+  showToast('✓ Movimiento registrado'+(loteUsado?' · lote '+loteUsado:''));
 }
 function limpiarForm(){
   const mpi=document.getElementById('mv-producto-input');
@@ -2294,10 +2334,11 @@ function limpiarForm(){
   document.getElementById('mv-cantidad').value='';
   document.getElementById('mv-motivo').value='';
   document.getElementById('mv-preview').className='preview-box';
-  const mf=document.getElementById('mv-fila');
-  if(mf)mf.value='';
-  const mfi=document.getElementById('mv-fila-info');
-  if(mfi)mfi.style.display='none';
+  const mln=document.getElementById('mv-lote-nuevo');
+  if(mln)mln.value='';
+  const mlv=document.getElementById('mv-lote-venc');
+  if(mlv)mlv.value='';
+  populateMvLotes();
 }
 
 // ── HISTORIAL ──────────────────────────────────────────────
@@ -2362,14 +2403,14 @@ async function guardarEdit(){
   if(!nuevaCant||nuevaCant<=0){showToast('Ingresá una cantidad válida');return;}
   const p=inv.find(x=>String(x.id)===String(h.prodId));
   if(p){
-    if(h.tipo==='entrada')p.fisico-=h.cantidad;else p.fisico+=h.cantidad;
-    if(nuevoTipo==='entrada')p.fisico+=nuevaCant;else p.fisico-=nuevaCant;
+    ajustarLote(p, h.lote, h.tipo==='entrada'?-h.cantidad:+h.cantidad);
+    ajustarLote(p, h.lote, nuevoTipo==='entrada'?+nuevaCant:-nuevaCant);
     h.nuevo=p.fisico;
   }
   const tipoAnterior=h.tipo;const cantAnterior=h.cantidad;
   h.tipo=nuevoTipo;h.cantidad=nuevaCant;h.motivo=nuevoMotivo;
   _registrarEnHistorial('editar_mov', h.producto, h.rubro, nuevaCant, '', null, null, `Movimiento editado: ${tipoAnterior}/${fmt(cantAnterior)} → ${nuevoTipo}/${fmt(nuevaCant)}`);
-  cerrarEdit();renderHistorial();renderTabla();renderMetrics();populateProductoSelect();
+  cerrarEdit();renderHistorial();renderTabla();renderMetrics();populateProductoSelect();renderDashboard();
   saveAll();
   showToast('✓ Movimiento actualizado');
 }
@@ -2378,11 +2419,11 @@ async function eliminarMov(i){
   const h=hist[i];
   const p=inv.find(x=>String(x.id)===String(h.prodId));
   if(p&&['entrada','salida'].includes(h.tipo)){
-    if(h.tipo==='entrada')p.fisico-=h.cantidad;else p.fisico+=h.cantidad;
+    ajustarLote(p, h.lote, h.tipo==='entrada'?-h.cantidad:+h.cantidad);
   }
   if(h.fbId&&window._fbReady) window._fbDeleteHist(h.fbId).catch(e=>console.error('deleteHist',e));
   hist.splice(i,1);
-  renderHistorial();renderTabla();renderMetrics();populateProductoSelect();
+  renderHistorial();renderTabla();renderMetrics();populateProductoSelect();renderDashboard();
   saveAll();
   showToast('Movimiento eliminado');
 }
@@ -2500,7 +2541,7 @@ async function agregarProducto(){
   if(!rubro){showToast('Seleccioná un rubro');return;}
   const id=idInput||'p'+Date.now();
   if(inv.find(x=>String(x.id)===String(id))){showToast('Ya existe un producto con ese ID');return;}
-  inv.push({id,nombre,rubro,fisico,crpf:0,cfpr:0,vepf:0,vfpe:0,precio,precioHist:[]});
+  inv.push({id,nombre,rubro,fisico,crpf:0,cfpr:0,vepf:0,vfpe:0,precio,precioHist:[],unidad,minimo:20,lotes:[{lote:'Inicial',cantidad:fisico,venc:venc||''}]});
   // Si se eligió una fila, agregar también ahí
   if(filaId){
     const fila=filas.find(f=>f.id===filaId);
@@ -2550,27 +2591,6 @@ function epRecalcTotal(){
   if(el) el.textContent=fmt(total)+' '+(document.getElementById('ep-unidad')?.value||'');
 }
 
-function epAgregarFila(filaId='', stock=0){
-  const list=document.getElementById('ep-filas-list');
-  const rowId='ep-fr-'+Date.now()+Math.random().toString(36).slice(2,6);
-  const filaOpts=filas.map(f=>`<option value="${f.id}" ${f.id===filaId?'selected':''}>${f.nombre}</option>`).join('');
-  const div=document.createElement('div');
-  div.id=rowId;
-  div.style.cssText='display:grid;grid-template-columns:1fr 120px 32px;gap:8px;align-items:center;margin-bottom:8px;';
-  div.innerHTML=`
-    <select style="padding:7px 10px;font-size:13px;font-family:var(--font);border:1px solid var(--border-dark);border-radius:8px;background:#fff;color:var(--text);outline:none;">
-      <option value="">— Sin fila —</option>${filaOpts}
-    </select>
-    <input type="number" step="0.01" min="0" value="${stock}" placeholder="0"
-      class="ep-fila-stock"
-      style="padding:7px 10px;font-size:13px;font-family:var(--mono);border:1px solid var(--border-dark);border-radius:8px;background:#fff;color:var(--text);outline:none;text-align:right;"
-      oninput="epRecalcTotal()">
-    <button type="button" onclick="document.getElementById('${rowId}').remove();epRecalcTotal();"
-      style="width:32px;height:32px;border-radius:7px;border:1px solid var(--danger-border);background:transparent;color:var(--danger);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;">×</button>`;
-  list.appendChild(div);
-  epRecalcTotal();
-}
-
 function abrirEditProd(id){
   const p=inv.find(x=>String(x.id)===String(id));
   if(!p)return;
@@ -2580,28 +2600,11 @@ function abrirEditProd(id){
   populateRubroSelects();
   document.getElementById('ep-rubro').value=p.rubro;
   document.getElementById('ep-minimo').value=p.minimo!=null?p.minimo:20;
-  document.getElementById('ep-lote').value=p.lote||'';
-  document.getElementById('ep-venc').value=p.venc||'';
 
   // Unidades
   const epUni=document.getElementById('ep-unidad');
   epUni.innerHTML=unidades.map(u=>`<option value="${u}" ${u===(p.unidad||'L')?'selected':''}>${u}</option>`).join('');
 
-  // Cargar filas donde está el producto
-  const list=document.getElementById('ep-filas-list');
-  list.innerHTML='';
-  const nombreBuscar=p.nombre.trim().toUpperCase();
-  let encontrado=false;
-  filas.forEach(fila=>{
-    (fila.items||[]).forEach(item=>{
-      if((item.prod||'').trim().toUpperCase()===nombreBuscar){
-        epAgregarFila(fila.id, item.total||0);
-        encontrado=true;
-      }
-    });
-  });
-  if(!encontrado) epAgregarFila('', p.fisico||0);
-  epRecalcTotal();
   document.getElementById('overlay-edit-prod').classList.add('open');
 }
 
@@ -2613,62 +2616,22 @@ async function guardarEditProd(){
   const nuevoNombre=document.getElementById('ep-nombre').value.trim();
   const nuevoRubro=document.getElementById('ep-rubro').value;
   const nuevoMinimo=parseFloat(document.getElementById('ep-minimo').value)||20;
-  const nuevoLote=document.getElementById('ep-lote').value.trim();
-  const nuevoVenc=document.getElementById('ep-venc').value;
   const nuevoUnidad=document.getElementById('ep-unidad').value||'L';
   if(!nuevoNombre){showToast('El nombre no puede estar vacío');return;}
 
-  // Leer filas del formulario
-  const nuevasFilas=[];
-  document.querySelectorAll('#ep-filas-list > div').forEach(row=>{
-    const sel=row.querySelector('select');
-    const inp=row.querySelector('input');
-    if(!sel||!inp)return;
-    const filaId=sel.value;
-    const stock=parseFloat(inp.value)||0;
-    if(filaId) nuevasFilas.push({filaId, stock});
-  });
-
-  const nuevoFisico=nuevasFilas.reduce((s,r)=>s+r.stock, 0);
   const nombreAnterior=p.nombre;
-  const fisicoAnterior=p.fisico;
 
-  // Actualizar inv
+  // Actualizar inv (el stock físico y los lotes no se tocan acá — se gestionan desde Ver)
   hist.forEach(h=>{if(String(h.prodId)===String(p.id))h.producto=nuevoNombre;});
-  p.nombre=nuevoNombre; p.rubro=nuevoRubro; p.minimo=nuevoMinimo;
-  p.fisico=nuevoFisico; p.lote=nuevoLote; p.venc=nuevoVenc; p.unidad=nuevoUnidad;
+  p.nombre=nuevoNombre; p.rubro=nuevoRubro; p.minimo=nuevoMinimo; p.unidad=nuevoUnidad;
 
-  // Sincronizar filas: quitar de todas las filas donde esté
-  const nombreUp=nuevoNombre.trim().toUpperCase();
-  const anteriorUp=nombreAnterior.trim().toUpperCase();
-  filas.forEach(fila=>{
-    fila.items=(fila.items||[]).filter(i=>(i.prod||'').trim().toUpperCase()!==anteriorUp && (i.prod||'').trim().toUpperCase()!==nombreUp);
-  });
-
-  // Agregar en las filas indicadas
-  nuevasFilas.forEach(({filaId,stock})=>{
-    const fila=filas.find(f=>f.id===filaId);
-    if(fila){
-      fila.items=fila.items||[];
-      fila.items.push({
-        prod:nuevoNombre, tipo:'liquido', presentacion:'',
-        cantidad:'', total:stock, unidad:nuevoUnidad,
-        venc:nuevoVenc||'', estado:'ok', notas:nuevoLote||''
-      });
-    }
-  });
-
-  let nota='';
-  if(nombreAnterior!==nuevoNombre) nota=`Renombrado: "${nombreAnterior}" → "${nuevoNombre}"`;
-  else if(fisicoAnterior!==nuevoFisico) nota=`Stock ajustado: ${fisicoAnterior} → ${nuevoFisico} ${nuevoUnidad}`;
-  else nota='Datos actualizados';
-  _registrarEnHistorial('editar_prod', nuevoNombre, nuevoRubro, nuevoFisico, nuevoUnidad, fisicoAnterior, nuevoFisico, nota);
+  let nota=nombreAnterior!==nuevoNombre?`Renombrado: "${nombreAnterior}" → "${nuevoNombre}"`:'Datos actualizados';
+  _registrarEnHistorial('editar_prod', nuevoNombre, nuevoRubro, p.fisico, nuevoUnidad, p.fisico, p.fisico, nota);
   cerrarEditProd();
   renderConfigList();renderTabla();populateProductoSelect();populateFiltros();renderHistorial();
   if(document.getElementById('tab-resumen').classList.contains('active'))renderResumen();
-  if(document.getElementById('tab-filas').classList.contains('active'))renderFilas();
   saveAll();
-  showToast('✓ Producto actualizado y sincronizado en filas');
+  showToast('✓ Producto actualizado');
 }
 async function eliminarProducto(id){
   const p=inv.find(x=>String(x.id)===String(id));
@@ -2950,7 +2913,7 @@ function showTab(tab){
   if(tab==='config'){renderRubros();renderUnidades();renderConfigList();populateRubroSelects();populateCfgFilaSel();populateCfgUnidadSel();}
   if(tab==='filas')renderFilas();
   if(tab==='resumen')renderResumen();
-  if(tab==='movimiento'){populateMvFilaSelect();renderResumenMetrics();}
+  if(tab==='movimiento'){populateMvLotes();renderResumenMetrics();}
   if(tab==='dashboard')renderDashboard();
   if(tab==='notas')renderNotas();
   if(tab==='facturas')renderFacturas();
@@ -3692,29 +3655,29 @@ function renderDashboard(){
       </div>`).join('');
   }
 
-  // Vencimientos próximos ≤60 días
+  // Vencimientos de lotes ≤90 días (o vencidos)
   const hoy=new Date(); hoy.setHours(0,0,0,0);
   const vencProximos=[];
-  filas.forEach(f=>{
-    f.items.forEach(item=>{
-      if(!item.venc) return;
+  inv.forEach(p=>{
+    (p.lotes||[]).forEach(l=>{
+      if(!l.venc) return;
       try{
-        const d=new Date(item.venc);
+        const d=new Date(l.venc);
         const dias=Math.round((d-hoy)/(1000*60*60*24));
-        if(dias<=60) vencProximos.push({prod:item.prod, fila:f.nombre, dias, fecha:item.venc, total:item.total, unidad:item.unidad});
+        if(dias<=90) vencProximos.push({prod:p.nombre, lote:l.lote, dias, fecha:l.venc, cantidad:l.cantidad});
       }catch(e){}
     });
   });
   vencProximos.sort((a,b)=>a.dias-b.dias);
   const elVenc=document.getElementById('dash-vencimientos');
   if(!vencProximos.length){
-    elVenc.innerHTML='<div class="dash-empty">Sin vencimientos en los próximos 60 días</div>';
+    elVenc.innerHTML='<div class="dash-empty">Sin lotes por vencer en los próximos 90 días</div>';
   } else {
     elVenc.innerHTML=vencProximos.slice(0,8).map(v=>{
-      const cls=v.dias<=7?'danger':v.dias<=30?'warn':'ok';
-      const lbl=v.dias<=0?'Vencido':v.dias===1?'Mañana':`${v.dias}d`;
+      const cls=v.dias<0?'danger':v.dias<=30?'warn':'ok';
+      const lbl=v.dias<0?'Vencido':v.dias===0?'Hoy':v.dias===1?'Mañana':`${v.dias}d`;
       return `<div class="dash-row">
-        <span class="dr-name" title="${v.prod} · ${v.fila}">${v.prod} <span style="font-size:11px;color:var(--text-muted);font-weight:400;">${v.fila}</span></span>
+        <span class="dr-name" title="${v.prod} · lote ${v.lote} · ${fmt(v.cantidad)}">${v.prod} <span style="font-size:11px;color:var(--text-muted);font-weight:400;">lote ${v.lote}</span></span>
         <span class="dr-val ${cls}">${lbl}</span>
       </div>`;
     }).join('');
