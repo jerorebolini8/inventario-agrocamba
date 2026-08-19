@@ -158,8 +158,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex
 .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
 .srch{position:relative;}
 .srch svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--text-muted);pointer-events:none;}
-.srch input{padding:7px 9px 7px 28px;font-size:13px;font-family:var(--font);border:1px solid var(--border-dark);border-radius:8px;background:var(--bg-card);color:var(--text);width:210px;outline:none;}
+.srch input{padding:7px 26px 7px 28px;font-size:13px;font-family:var(--font);border:1px solid var(--border-dark);border-radius:8px;background:var(--bg-card);color:var(--text);width:210px;outline:none;}
 .srch input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(45,106,79,.12);}
+.srch-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:18px;height:18px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:15px;line-height:1;display:none;align-items:center;justify-content:center;border-radius:50%;padding:0;}
+.srch-clear:hover{background:var(--border);color:var(--text);}
+.srch input:not(:placeholder-shown)~.srch-clear{display:flex;}
 select.flt{padding:7px 9px;font-size:13px;font-family:var(--font);border:1px solid var(--border-dark);border-radius:8px;background:var(--bg-card);color:var(--text);outline:none;cursor:pointer;}
 
 /* AUTOCOMPLETE */
@@ -455,6 +458,13 @@ table.fact-table tbody tr:last-child td{border-bottom:none;}
 .fact-row-toggle{background:transparent;border:1px solid var(--border-dark);color:var(--text-muted);font-size:11px;padding:3px 10px;border-radius:7px;cursor:pointer;font-family:var(--font);white-space:nowrap;}
 .fact-row-toggle:hover{background:#fafaf8;color:var(--text);}
 .fact-detail-row{display:none;background:#f9f8f5;}
+.stk-row-open td{background:var(--accent-light)!important;}
+.fact-detail-row.stk-detail-open{background:var(--accent-light);}
+.stk-check{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border-dark);background:#fff;color:#fff;font-size:13px;font-weight:700;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;transition:all .15s;}
+.stk-check:hover{border-color:var(--accent);}
+.stk-check.on{background:var(--accent);border-color:var(--accent);}
+tr.stk-revisado td{color:var(--text-muted);}
+tr.stk-revisado td:first-child{color:inherit;}
 .fact-detail-row.open{display:table-row;}
 .fact-detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px 18px;font-size:12px;width:100%;box-sizing:border-box;}
 .fact-detail-item .fdi-lbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);margin-bottom:2px;}
@@ -825,11 +835,12 @@ table.htable tbody tr:hover td{background:#f4faf6;}
         <div class="mc"><div class="mc-lbl">Sin stock / negativo</div><div class="mc-val danger" id="m-danger">—</div></div>
       </div>
       <div class="sec-header">
-        <div class="sec-title">Productos</div>
+        <div class="sec-title">Productos <span id="rev-progreso" style="font-size:11px;font-weight:400;color:var(--text-muted);font-family:var(--mono);margin-left:6px;"></span></div>
         <div class="controls">
           <div class="srch">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" id="buscar" placeholder="Buscar producto..." oninput="renderTabla()">
+            <button type="button" class="srch-clear" title="Borrar" onclick="document.getElementById('buscar').value='';renderTabla();document.getElementById('buscar').focus();">×</button>
           </div>
           <select class="flt" id="filtro-rubro" onchange="renderTabla()"><option value="">Todos los rubros</option></select>
           <select class="flt" id="filtro-estado" onchange="renderTabla()">
@@ -838,17 +849,23 @@ table.htable tbody tr:hover td{background:#f4faf6;}
             <option value="warn">Stock bajo</option>
             <option value="danger">Sin stock</option>
           </select>
+          <select class="flt" id="filtro-revisado" onchange="renderTabla()">
+            <option value="">Revisados y pendientes</option>
+            <option value="no">Solo pendientes</option>
+            <option value="si">Solo revisados</option>
+          </select>
         </div>
       </div>
       <div class="tw tw-scroll">
         <table>
           <thead><tr>
-            <th style="width:38%">Producto</th>
-            <th style="width:16%">Rubro</th>
-            <th style="width:14%;text-align:right">Físico</th>
-            <th style="width:14%;text-align:right">Precio venta</th>
+            <th style="width:5%;text-align:center">✓</th>
+            <th style="width:31%">Producto</th>
+            <th style="width:13%">Rubro</th>
+            <th style="width:11%;text-align:right">Físico</th>
+            <th style="width:11%;text-align:right">Precio venta</th>
             <th style="width:10%;text-align:center">Estado</th>
-            <th style="width:8%;text-align:center">Ver</th>
+            <th style="width:18%;text-align:center">Detalle</th>
           </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
@@ -2010,25 +2027,85 @@ function renderTabla(){
   const b=document.getElementById('buscar').value.toLowerCase();
   const r=document.getElementById('filtro-rubro').value;
   const e=document.getElementById('filtro-estado').value;
+  const rv=document.getElementById('filtro-revisado')?.value||'';
   const data=inv.filter(p=>{
     if(b&&!p.nombre.toLowerCase().includes(b))return false;
     if(r&&p.rubro!==r)return false;
     if(e&&est(p.fisico)!==e)return false;
+    if(rv==='no'&&p.revisado)return false;
+    if(rv==='si'&&!p.revisado)return false;
     return true;
   });
+  const prog=document.getElementById('rev-progreso');
+  if(prog){
+    const totalRev=inv.filter(p=>p.revisado).length;
+    prog.textContent=`· ${totalRev}/${inv.length} revisados`;
+  }
   const tbody=document.getElementById('tbody');
-  if(!data.length){tbody.innerHTML='<tr><td colspan="6" class="empty"><div class="ico">📦</div>No se encontraron productos</td></tr>';return;}
+  if(!data.length){tbody.innerHTML='<tr><td colspan="7" class="empty"><div class="ico">📦</div>No se encontraron productos</td></tr>';return;}
   tbody.innerHTML=data.map(p=>{
     const e2=est(p.fisico,p.minimo);
-    return`<tr>
+    const rowId='stk-'+p.id;
+    const ud=p.unidad||'L';
+    const rev=!!p.revisado;
+    const lotesOrdenados=[...(p.lotes||[])].sort((a,b2)=>{
+      if(!a.venc&&!b2.venc)return 0;if(!a.venc)return 1;if(!b2.venc)return -1;
+      return new Date(a.venc)-new Date(b2.venc);
+    });
+    const lotesHtml=lotesOrdenados.length?lotesOrdenados.map(l=>{
+      const vi=vencInfo(l.venc);
+      const vencTxt=l.venc?new Date(l.venc+'T00:00:00').toLocaleDateString('es-AR'):'';
+      return `<div style="display:flex;align-items:center;gap:9px;font-size:12.5px;padding:2px 0;flex-wrap:wrap;">
+        <span style="font-weight:600;">${l.lote||'Sin lote'}</span>
+        <span style="color:var(--text-muted);font-family:var(--mono);">${fmt(l.cantidad)} ${ud}</span>
+        <span class="venc-chip ${vi.cls}">${l.venc?'Venc: '+vencTxt:'Sin vencimiento'}</span>
+      </div>`;
+    }).join(''):'<span style="color:var(--text-muted);">Sin lotes cargados</span>';
+    return`<tr id="main-${rowId}" class="${rev?'stk-revisado':''}">
+      <td style="text-align:center;">
+        <button type="button" class="stk-check ${rev?'on':''}" title="${rev?'Marcado como revisado':'Marcar como revisado'}" onclick="toggleRevisado('${p.id}')">${rev?'✓':''}</button>
+      </td>
       <td title="${p.nombre}" style="font-weight:500;">${p.nombre}</td>
       <td style="color:var(--text-muted);font-size:12px;">${p.rubro}</td>
-      <td style="text-align:right;font-family:var(--mono);">${fmt(p.fisico)}</td>
+      <td style="text-align:right;font-family:var(--mono);">${fmt(p.fisico)} ${ud}</td>
       <td style="text-align:right;font-family:var(--mono);color:var(--accent);">${fmtP(p.precio)}</td>
       <td style="text-align:center;"><span class="badge ${e2}">${estLbl(p.fisico,p.minimo)}</span></td>
-      <td style="text-align:center;"><button class="btn-sm" onclick="abrirDetalle('${p.id}')">Ver</button></td>
+      <td style="display:flex;gap:5px;justify-content:center;align-items:center;">
+        <button class="fact-row-toggle" onclick="toggleStockDetalle('${rowId}')" id="btn-${rowId}">Ver detalle ▾</button>
+        <button class="btn-sm" onclick="abrirDetalle('${p.id}')" title="Editar">✏</button>
+      </td>
+    </tr>
+    <tr class="fact-detail-row" id="${rowId}">
+      <td colspan="7" style="padding:0;">
+        <div class="fact-detail-grid">
+          <div class="fact-detail-item span4">
+            <div class="fdi-lbl">Lotes</div>
+            <div style="display:flex;flex-direction:column;">${lotesHtml}</div>
+          </div>
+          <div class="fact-detail-item"><div class="fdi-lbl">Precio de venta</div><div class="fdi-val">${fmtP(p.precio)}</div></div>
+          <div class="fact-detail-item"><div class="fdi-lbl">Stock mínimo (alerta)</div><div class="fdi-val">${fmt(p.minimo!=null?p.minimo:20)} ${ud}</div></div>
+        </div>
+      </td>
     </tr>`;
   }).join('');
+}
+async function toggleRevisado(id){
+  const p=inv.find(x=>String(x.id)===String(id));
+  if(!p)return;
+  p.revisado=!p.revisado;
+  renderTabla();
+  saveAll();
+}
+function toggleStockDetalle(rowId){
+  const row=document.getElementById(rowId);
+  const mainRow=document.getElementById('main-'+rowId);
+  const btn=document.getElementById('btn-'+rowId);
+  if(!row)return;
+  const open=row.classList.contains('open');
+  row.classList.toggle('open',!open);
+  row.classList.toggle('stk-detail-open',!open);
+  if(mainRow)mainRow.classList.toggle('stk-row-open',!open);
+  if(btn)btn.textContent=!open?'Ocultar detalle ▴':'Ver detalle ▾';
 }
 
 // ── DETALLE ────────────────────────────────────────────────
