@@ -260,10 +260,6 @@ tbody tr:hover td{background:#fafaf8;}
 .detail-row input{width:120px;padding:5px 8px;font-size:13px;font-family:var(--mono);border:.5px solid var(--border-dark);border-radius:6px;background:#fff;color:var(--text);text-align:right;outline:none;}
 .detail-row input:focus{border-color:var(--accent);}
 .detail-row .val{font-size:14px;font-weight:600;font-family:var(--mono);}
-.contable-result{display:flex;justify-content:space-between;align-items:center;padding:.8rem 1.1rem;background:var(--accent-light);border:.5px solid var(--accent-border);border-radius:10px;margin-bottom:1.1rem;}
-.contable-result .lbl{font-size:13px;color:var(--accent);font-weight:500;}
-.contable-result .formula{font-size:10.5px;color:#4a9a74;margin-top:2px;font-family:var(--mono);}
-.contable-result .num{font-size:22px;font-weight:600;font-family:var(--mono);color:var(--accent);}
 
 /* PRICE HISTORY */
 .price-hist{margin-top:.75rem;}
@@ -724,7 +720,7 @@ table.htable tbody tr:hover td{background:#f4faf6;}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <div class="nav-group-items open" id="ng-inventario">
-        <button class="nav-btn" onclick="showTab('resumen')" data-tab="resumen">
+        <button class="nav-btn" onclick="showTab('stock')" data-tab="stock">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           Stock por producto
         </button>
@@ -814,7 +810,7 @@ table.htable tbody tr:hover td{background:#f4faf6;}
   <!-- STOCK -->
   <div id="tab-stock" class="tab-content">
     <div class="topbar">
-      <div><div class="page-title">Stock del galpón</div><div class="page-sub">Hacé clic en "Ver" para detalle contable y precio</div></div>
+      <div><div class="page-title">Stock del galpón</div><div class="page-sub">Hacé clic en "Ver" para gestionar lotes, vencimientos y precio</div></div>
       <button class="btn-export" onclick="exportarCSV()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
         Exportar CSV
@@ -847,14 +843,12 @@ table.htable tbody tr:hover td{background:#f4faf6;}
       <div class="tw tw-scroll">
         <table>
           <thead><tr>
-            <th style="width:32%">Producto</th>
-            <th style="width:13%">Rubro</th>
-            <th style="width:10%;text-align:right">Físico</th>
-            <th style="width:10%;text-align:right">Contable</th>
-            <th style="width:10%;text-align:right">Diferencia</th>
-            <th style="width:11%;text-align:right">Precio venta</th>
-            <th style="width:8%;text-align:center">Estado</th>
-            <th style="width:6%;text-align:center">Ver</th>
+            <th style="width:38%">Producto</th>
+            <th style="width:16%">Rubro</th>
+            <th style="width:14%;text-align:right">Físico</th>
+            <th style="width:14%;text-align:right">Precio venta</th>
+            <th style="width:10%;text-align:center">Estado</th>
+            <th style="width:8%;text-align:center">Ver</th>
           </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
@@ -1729,26 +1723,6 @@ table.htable tbody tr:hover td{background:#f4faf6;}
       </div>
     </div>
 
-    <div class="detail-block">
-      <div class="detail-block-title">Compras pendientes</div>
-      <div class="detail-row"><label>Recibido, pendiente de factura</label><input type="number" step="0.01" id="det-crpf" oninput="recalcContable()"></div>
-      <div class="detail-row"><label>Facturado, pendiente de recibir</label><input type="number" step="0.01" id="det-cfpr" oninput="recalcContable()"></div>
-    </div>
-
-    <div class="detail-block">
-      <div class="detail-block-title">Ventas pendientes</div>
-      <div class="detail-row"><label>Entregado, pendiente de factura</label><input type="number" step="0.01" id="det-vepf" oninput="recalcContable()"></div>
-      <div class="detail-row"><label>Facturado, pendiente de entregar</label><input type="number" step="0.01" id="det-vfpe" oninput="recalcContable()"></div>
-    </div>
-
-    <div class="contable-result">
-      <div>
-        <div class="lbl">Stock contable calculado</div>
-        <div class="formula">Físico + C.rec.pf + C.fact.pr − V.ent.pf − V.fact.pe</div>
-      </div>
-      <div class="num" id="det-contable">—</div>
-    </div>
-
     <!-- STOCK MÍNIMO -->
     <div class="detail-block">
       <div class="detail-block-title">Alerta de stock mínimo</div>
@@ -2005,7 +1979,6 @@ function migrarLotes(){
 }
 function sumLotes(p){return (p.lotes||[]).reduce((s,l)=>s+(parseFloat(l.cantidad)||0),0);}
 function recalcFisico(p){p.fisico=sumLotes(p);}
-function cont(p){return p.fisico+(p.crpf||0)+(p.cfpr||0)-(p.vepf||0)-(p.vfpe||0);}
 function est(f,minimo){const m=minimo||20;return f<=0?'danger':f<=m?'warn':'ok';}
 function estLbl(f,minimo){const m=minimo||20;return f<=0?'Sin stock':f<=m?'Stock bajo':'Normal';}
 function fmt(n){return parseFloat(parseFloat(n).toFixed(2)).toLocaleString('es-AR');}
@@ -2044,16 +2017,13 @@ function renderTabla(){
     return true;
   });
   const tbody=document.getElementById('tbody');
-  if(!data.length){tbody.innerHTML='<tr><td colspan="8" class="empty"><div class="ico">📦</div>No se encontraron productos</td></tr>';return;}
+  if(!data.length){tbody.innerHTML='<tr><td colspan="6" class="empty"><div class="ico">📦</div>No se encontraron productos</td></tr>';return;}
   tbody.innerHTML=data.map(p=>{
-    const c=cont(p),diff=c-p.fisico,e2=est(p.fisico,p.minimo);
-    const dc=diff===0?'var(--text-muted)':diff>0?'var(--accent)':'var(--danger)';
+    const e2=est(p.fisico,p.minimo);
     return`<tr>
       <td title="${p.nombre}" style="font-weight:500;">${p.nombre}</td>
       <td style="color:var(--text-muted);font-size:12px;">${p.rubro}</td>
       <td style="text-align:right;font-family:var(--mono);">${fmt(p.fisico)}</td>
-      <td style="text-align:right;font-family:var(--mono);">${fmt(c)}</td>
-      <td style="text-align:right;font-family:var(--mono);color:${dc};">${fmtD(diff)}</td>
       <td style="text-align:right;font-family:var(--mono);color:var(--accent);">${fmtP(p.precio)}</td>
       <td style="text-align:center;"><span class="badge ${e2}">${estLbl(p.fisico,p.minimo)}</span></td>
       <td style="text-align:center;"><button class="btn-sm" onclick="abrirDetalle('${p.id}')">Ver</button></td>
@@ -2069,13 +2039,8 @@ function abrirDetalle(id){
   document.getElementById('det-nombre').textContent=p.nombre;
   document.getElementById('det-rubro').textContent=p.rubro+' · ID '+p.id;
   renderDetLotes(p);
-  document.getElementById('det-crpf').value=p.crpf||0;
-  document.getElementById('det-cfpr').value=p.cfpr||0;
-  document.getElementById('det-vepf').value=p.vepf||0;
-  document.getElementById('det-vfpe').value=p.vfpe||0;
   document.getElementById('det-precio').value=p.precio||0;
   document.getElementById('det-minimo').value=p.minimo!=null?p.minimo:20;
-  recalcContable();
   renderPriceHist(p);
   document.getElementById('overlay-detalle').classList.add('open');
 }
@@ -2113,14 +2078,6 @@ function detRecalcFisico(){
   document.querySelectorAll('#det-lotes-list .det-lote-cant').forEach(inp=>{total+=parseFloat(inp.value)||0;});
   const el=document.getElementById('det-fisico');
   if(el)el.textContent=fmt(total);
-  recalcContable();
-}
-function recalcContable(){
-  if(!detId)return;
-  let f=0;
-  document.querySelectorAll('#det-lotes-list .det-lote-cant').forEach(inp=>{f+=parseFloat(inp.value)||0;});
-  const c=f+(parseFloat(document.getElementById('det-crpf').value)||0)+(parseFloat(document.getElementById('det-cfpr').value)||0)-(parseFloat(document.getElementById('det-vepf').value)||0)-(parseFloat(document.getElementById('det-vfpe').value)||0);
-  document.getElementById('det-contable').textContent=fmt(c);
 }
 function renderPriceHist(p){
   const wrap=document.getElementById('price-hist-wrap');
@@ -2148,10 +2105,6 @@ async function guardarDetalle(){
   const fisicoAnterior=p.fisico;
   p.lotes=nuevosLotes.length?nuevosLotes:[{lote:'Sin lote',cantidad:0,venc:''}];
   recalcFisico(p);
-  p.crpf=parseFloat(document.getElementById('det-crpf').value)||0;
-  p.cfpr=parseFloat(document.getElementById('det-cfpr').value)||0;
-  p.vepf=parseFloat(document.getElementById('det-vepf').value)||0;
-  p.vfpe=parseFloat(document.getElementById('det-vfpe').value)||0;
   p.minimo=parseFloat(document.getElementById('det-minimo').value)||20;
   const nuevoPrecio=parseFloat(document.getElementById('det-precio').value)||0;
   // guardar historial de precio si cambió
@@ -2161,7 +2114,6 @@ async function guardarDetalle(){
   }
   p.precio=nuevoPrecio;
   if(fisicoAnterior!==p.fisico)_registrarEnHistorial('editar_prod', p.nombre, p.rubro, p.fisico, p.unidad||'', fisicoAnterior, p.fisico, `Lotes ajustados: ${fmt(fisicoAnterior)} → ${fmt(p.fisico)}`);
-  _registrarEnHistorial('contable', p.nombre, p.rubro, '—', '', null, null, 'Datos contables actualizados');
   if(nuevoPrecio!==0)_registrarEnHistorial('precio', p.nombre, p.rubro, nuevoPrecio, '$', null, null, 'Precio de venta actualizado');
   cerrarDetalle();renderTabla();renderHistorial();renderMetrics();populateProductoSelect();
   if(document.getElementById('tab-dashboard')?.classList.contains('active'))renderDashboard();
@@ -2646,8 +2598,15 @@ async function eliminarProducto(id){
 
 // ── EXPORT ─────────────────────────────────────────────────
 function exportarCSV(){
-  const h=['ID','Producto','Rubro','Físico','Contable','C.Rec.PF','C.Fact.PR','V.Ent.PF','V.Fact.PE','Diferencia','Precio Venta','Estado'];
-  const rows=inv.map(p=>[p.id,p.nombre,p.rubro,p.fisico,cont(p),p.crpf,p.cfpr,p.vepf,p.vfpe,cont(p)-p.fisico,p.precio||0,estLbl(p.fisico)]);
+  const h=['ID','Producto','Rubro','Físico','Lotes','Próximo vencimiento','Precio Venta','Estado'];
+  const rows=inv.map(p=>{
+    const lotesOrdenados=[...(p.lotes||[])].sort((a,b)=>{
+      if(!a.venc&&!b.venc)return 0; if(!a.venc)return 1; if(!b.venc)return -1;
+      return new Date(a.venc)-new Date(b.venc);
+    });
+    const proxVenc=lotesOrdenados.find(l=>l.venc)?.venc||'';
+    return[p.id,p.nombre,p.rubro,p.fisico,(p.lotes||[]).length,proxVenc,p.precio||0,estLbl(p.fisico,p.minimo)];
+  });
   const csv=[h,...rows].map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));
@@ -2912,6 +2871,7 @@ function showTab(tab){
   if(tab==='historial')renderHistorial();
   if(tab==='config'){renderRubros();renderUnidades();renderConfigList();populateRubroSelects();populateCfgFilaSel();populateCfgUnidadSel();}
   if(tab==='filas')renderFilas();
+  if(tab==='stock'){renderMetrics();renderTabla();}
   if(tab==='resumen')renderResumen();
   if(tab==='movimiento'){populateMvLotes();renderResumenMetrics();}
   if(tab==='dashboard')renderDashboard();
