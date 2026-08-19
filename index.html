@@ -863,7 +863,7 @@ table.htable tbody tr:hover td{background:#f4faf6;}
             <th style="width:31%">Producto</th>
             <th style="width:13%">Rubro</th>
             <th style="width:11%;text-align:right">Físico</th>
-            <th style="width:11%;text-align:right">Precio venta</th>
+            <th style="width:11%;text-align:right">Fecha vencimiento</th>
             <th style="width:10%;text-align:center">Estado</th>
             <th style="width:18%;text-align:center">Detalle</th>
           </tr></thead>
@@ -2061,6 +2061,9 @@ function renderTabla(){
         <span class="venc-chip ${vi.cls}">${l.venc?'Venc: '+vencTxt:'Sin vencimiento'}</span>
       </div>`;
     }).join(''):'<span style="color:var(--text-muted);">Sin lotes cargados</span>';
+    const proxLote=lotesOrdenados.find(l=>l.venc);
+    const proxVi=proxLote?vencInfo(proxLote.venc):null;
+    const proxTxt=proxLote?new Date(proxLote.venc+'T00:00:00').toLocaleDateString('es-AR'):'—';
     return`<tr id="main-${rowId}" class="${rev?'stk-revisado':''}">
       <td style="text-align:center;">
         <button type="button" class="stk-check ${rev?'on':''}" title="${rev?'Marcado como revisado':'Marcar como revisado'}" onclick="toggleRevisado('${p.id}')">${rev?'✓':''}</button>
@@ -2068,7 +2071,7 @@ function renderTabla(){
       <td title="${p.nombre}" style="font-weight:500;">${p.nombre}</td>
       <td style="color:var(--text-muted);font-size:12px;">${p.rubro}</td>
       <td style="text-align:right;font-family:var(--mono);">${fmt(p.fisico)} ${ud}</td>
-      <td style="text-align:right;font-family:var(--mono);color:var(--accent);">${fmtP(p.precio)}</td>
+      <td style="text-align:right;">${proxLote?`<span class="venc-chip ${proxVi.cls}">${proxTxt}</span>`:'<span style="color:var(--text-muted);">—</span>'}</td>
       <td style="text-align:center;"><span class="badge ${e2}">${estLbl(p.fisico,p.minimo)}</span></td>
       <td style="display:flex;gap:5px;justify-content:center;align-items:center;">
         <button class="fact-row-toggle" onclick="toggleStockDetalle('${rowId}')" id="btn-${rowId}">Ver detalle ▾</button>
