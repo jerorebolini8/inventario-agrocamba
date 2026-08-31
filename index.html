@@ -4532,7 +4532,7 @@ function exportarBackupCompleto(){
 // ── DEFAULTS ──────────────────────────────────────────────
 const DEFAULT_CONFIG={
   pago:{pagare:0,contado:8,fwd_corto:3,fwd_cosecha:3,avc:12},
-  especial:{crecer:2.5,pc_ns7765:3,pc_especial:6,pc_maiz:8,pc_ns1227:0,pc_gira:2,desc_nidera:0,desc_agrocamba:0},
+  especial:{crecer:2.5,pc_ns7765:3,pc_especial:6,pc_maiz:8,pc_ns1227:0,pc_gira:0,desc_nidera:0,desc_agrocamba:0},
   vol_maiz:[
     {min:0,max:29,desc:0},{min:30,max:99,desc:3},{min:100,max:199,desc:6},
     {min:200,max:349,desc:8},{min:350,max:549,desc:9},{min:550,max:999,desc:10},{min:1000,max:999999,desc:11}
@@ -4542,16 +4542,16 @@ const DEFAULT_CONFIG={
     {min:121,max:180,desc:3},{min:181,max:330,desc:4},{min:331,max:999999,desc:5}
   ],
   maiz:[
-    {id:'ns7852',nombre:'NS7852 Viptera3',b1:260,b2:249.6,b3:239.2,cl:false,pcKey:'pc_maiz',nota:null},
+    {id:'ns7852',nombre:'NS7852 Viptera3',b1:260,b2:249.6,b3:239.2,cl:false,pcKey:'pc_especial',nota:null},
     {id:'ns7765',nombre:'NS7765 Viptera3',b1:250,b2:240,b3:230,cl:false,pcKey:'pc_ns7765',nota:null},
     {id:'ns7925',nombre:'NS7925 Viptera3',b1:245,b2:235.2,b3:225.4,cl:false,pcKey:'pc_maiz',nota:null},
     {id:'ns7621',nombre:'NS7621 Viptera3',b1:245,b2:235.2,b3:225.4,cl:false,pcKey:'pc_maiz',nota:null},
     {id:'ax7761',nombre:'AX7761 VT3P',b1:240,b2:230.4,b3:220.8,cl:false,pcKey:'pc_especial',nota:null},
-    {id:'ns7921',nombre:'NS7921 Viptera3CL',b1:240,b2:230.4,b3:220.8,cl:true,pcKey:'pc_maiz',nota:'Fuera de estándar — susceptible a glifosato 2-5% plantas'},
+    {id:'ns7921',nombre:'NS7921 Viptera3CL',b1:240,b2:230.4,b3:220.8,cl:true,pcKey:'pc_especial',nota:'Fuera de estándar — susceptible a glifosato 2-5% plantas'},
     {id:'ns7624',nombre:'NS7624 Viptera3CL',b1:230.3,b2:221.09,b3:211.88,cl:true,pcKey:'pc_maiz',nota:null},
     {id:'ax7784',nombre:'AX7784 VT3P',b1:215,b2:206.4,b3:197.8,cl:false,pcKey:'pc_maiz',nota:null},
-    {id:'ns7818',nombre:'NS7818 Viptera3',b1:200,b2:192,b3:184,cl:false,pcKey:'pc_maiz',nota:null},
-    {id:'ss2223',nombre:'SS2223S VIP 3',b1:185,b2:177.6,b3:170.2,cl:false,pcKey:'pc_maiz',nota:'Bolsas de 60.000 semillas'},
+    {id:'ns7818',nombre:'NS7818 Viptera3',b1:200,b2:192,b3:184,cl:false,pcKey:'pc_especial',nota:null},
+    {id:'ss2223',nombre:'SS2223S VIP 3',b1:185,b2:177.6,b3:170.2,cl:false,pcKey:'pc_especial',nota:'Bolsas de 60.000 semillas'},
     {id:'ns7800',nombre:'NS7800 TGCL',b1:165,b2:158.4,b3:151.8,cl:true,pcKey:'pc_maiz',nota:null},
   ],
   gira:[
@@ -4560,7 +4560,7 @@ const DEFAULT_CONFIG={
     {id:'ns1117',nombre:'NS1117CL',b1:345,b2:327.75,b3:null,cl:true,pcKey:'pc_gira',nota:null},
     {id:'ns1115',nombre:'NS1115CL',b1:315,b2:299.25,b3:null,cl:true,pcKey:'pc_gira',nota:null},
   ],
-  validez:'31/07/2026'
+  validez:'31/08/2026'
 };
 
 // ── ESTADO ────────────────────────────────────────────────
