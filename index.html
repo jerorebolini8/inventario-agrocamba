@@ -1485,6 +1485,11 @@ table.htable tbody tr:hover td{background:#f4faf6;}
             <span class="cfg-unit">%</span>
           </div>
           <div class="cfg-row">
+            <div class="cfg-row-label">Pre-campaña AX7784 / NS7621 / NS7925</div>
+            <input class="cfg-input" id="cfg-pc-gr6" type="number" step="0.1" min="0">
+            <span class="cfg-unit">%</span>
+          </div>
+          <div class="cfg-row">
             <div class="cfg-row-label">Pre-campaña NS1227CLHO (girasol)</div>
             <input class="cfg-input" id="cfg-pc-ns1227" type="number" step="0.1" min="0">
             <span class="cfg-unit">%</span>
@@ -4996,6 +5001,7 @@ function renderConfig(){
   document.getElementById('cfg-pc-ns7765').value=cfg.especial.pc_ns7765||3;
   document.getElementById('cfg-pc-especial').value=cfg.especial.pc_especial;
   document.getElementById('cfg-pc-maiz').value=cfg.especial.pc_maiz;
+  document.getElementById('cfg-pc-gr6').value=cfg.especial.pc_gr6!=null?cfg.especial.pc_gr6:6;
   document.getElementById('cfg-pc-ns1227').value=cfg.especial.pc_ns1227;
   document.getElementById('cfg-pc-gira').value=cfg.especial.pc_gira;
   document.getElementById('cfg-desc-nidera').value=cfg.especial.desc_nidera||0;
@@ -5101,6 +5107,7 @@ function guardarConfig(){
   cfg.especial.pc_ns7765=parseFloat(document.getElementById('cfg-pc-ns7765').value)||0;
   cfg.especial.pc_especial=parseFloat(document.getElementById('cfg-pc-especial').value)||0;
   cfg.especial.pc_maiz=parseFloat(document.getElementById('cfg-pc-maiz').value)||0;
+  cfg.especial.pc_gr6=parseFloat(document.getElementById('cfg-pc-gr6').value)||0;
   cfg.especial.pc_ns1227=parseFloat(document.getElementById('cfg-pc-ns1227').value)||0;
   cfg.especial.pc_gira=parseFloat(document.getElementById('cfg-pc-gira').value)||0;
   cfg.especial.desc_nidera=parseFloat(document.getElementById('cfg-desc-nidera').value)||0;
