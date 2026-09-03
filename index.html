@@ -609,10 +609,14 @@ table.htable tbody tr:hover td{background:#f4faf6;}
 .fg select:focus,.fg input[type=text]:focus{border-color:var(--green-bright);background:#fff;}
 .carrito-empty{text-align:center;padding:2.5rem 1rem;color:var(--text-muted);font-size:13px;}
 .carrito-empty .ico{font-size:28px;margin-bottom:.5rem;opacity:.4;}
-.ci{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #eef5f1;}
+.ci{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:flex-start;padding:11px 0;border-bottom:1px solid #eef5f1;}
 .ci:last-child{border-bottom:none;}
 .ci-name{font-size:13px;font-weight:600;color:var(--text);}
 .ci-det{font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-top:2px;}
+.ci-pagos{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.ci-pago{display:flex;align-items:center;gap:5px;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:3px 8px;}
+.ci-pago-lbl{color:var(--text-muted);font-family:var(--mono);}
+.ci-pago-val{color:var(--accent);font-weight:700;font-family:var(--mono);}
 .ci-precio{font-family:var(--mono);font-size:13px;font-weight:700;text-align:right;white-space:nowrap;color:var(--green-mid);}
 .ci-del{background:none;border:none;color:var(--border-dark);cursor:pointer;font-size:18px;padding:2px 5px;line-height:1;transition:color .15s;}
 .ci-del:hover{color:var(--danger);}
@@ -4771,15 +4775,28 @@ function recalc(){
     subtotal+=total;
     return{...item,d,dVol,pf,total};
   });
-  body.innerHTML=items.map((item,i)=>`
+  const pagosPorCultivo={
+    maiz:[{key:'contado',label:'Contado'},{key:'fwd_corto',label:'FWD Dic26/Ene27'},{key:'fwd_cosecha',label:'FWD Cosecha 27'}],
+    gira:[{key:'contado',label:'Contado'},{key:'fwd_corto',label:'FWD Dic26/Ene27'},{key:'avc',label:'AVC Girasol'}]
+  };
+  body.innerHTML=items.map((item,i)=>{
+    const opciones=pagosPorCultivo[item.cultivo]||pagosPorCultivo.maiz;
+    const preciosHtml=opciones.map(op=>{
+      const dOp=calcDescItem(item,op.key,precampaña,crecer,item.dVol);
+      const pOp=item.lista_precio*(1-dOp/100);
+      return `<span class="ci-pago"><span class="ci-pago-lbl">${op.label}</span><span class="ci-pago-val">USD ${pOp.toFixed(2)}</span></span>`;
+    }).join('');
+    return `
     <div class="ci">
-      <div>
+      <div style="flex:1;">
         <div class="ci-name">${item.nombre}${item.cl?'<span class="badge-cl">CL</span>':''}</div>
-        <div class="ci-det">${item.qty} bolsa${item.qty>1?'s':''} × USD ${item.pf.toFixed(2)} (−${item.d.toFixed(1)}%) · Banda ${item.banda}</div>
+        <div class="ci-det">${item.qty} bolsa${item.qty>1?'s':''} · Banda ${item.banda}</div>
+        <div class="ci-pagos">${preciosHtml}</div>
       </div>
       <div class="ci-precio">USD ${item.total.toFixed(2)}</div>
       <button class="ci-del" onclick="quitarItem(${i})">×</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   let tags=[];
   const dp=getDescPago(pago,'maiz');
   if(precampaña)tags.push('Pre-campaña aplicada');
@@ -4998,7 +5015,7 @@ function renderConfig(){
   document.getElementById('cfg-avc').value=cfg.pago.avc;
   // Especiales
   document.getElementById('cfg-crecer').value=cfg.especial.crecer;
-  document.getElementById('cfg-pc-ns7765').value=cfg.especial.pc_ns7765||3;
+  document.getElementById('cfg-pc-ns7765').value=cfg.especial.pc_ns7765!=null?cfg.especial.pc_ns7765:3;
   document.getElementById('cfg-pc-especial').value=cfg.especial.pc_especial;
   document.getElementById('cfg-pc-maiz').value=cfg.especial.pc_maiz;
   document.getElementById('cfg-pc-gr6').value=cfg.especial.pc_gr6!=null?cfg.especial.pc_gr6:6;
